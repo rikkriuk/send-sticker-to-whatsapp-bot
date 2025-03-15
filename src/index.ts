@@ -1,1 +1,2 @@
-console.log("hello world")
+import "./bots/telegram";
+import "./bots/whatsapp";
