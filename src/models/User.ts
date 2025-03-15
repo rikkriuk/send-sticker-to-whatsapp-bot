@@ -12,6 +12,10 @@ const UserSchema: Schema = new Schema(
       type: String, 
       required: true 
     },
+    userName: {
+      type: String,
+      required: false 
+    },
     whatsappNumber: {
       type: String,
       required: false,

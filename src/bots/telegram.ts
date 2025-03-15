@@ -1,8 +1,5 @@
 import { Telegraf } from "telegraf";
-import dotenv from "dotenv";
 import { handleStart, hears, handleTextMessage, handleStickerMessage } from "../helpers/telegramHelper";
-
-dotenv.config();
 
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN as string);
 
