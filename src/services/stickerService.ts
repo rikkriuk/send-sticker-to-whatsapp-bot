@@ -12,16 +12,11 @@ export const downloadFile = async (mediaData: MediaData, ctx: any) => {
       if (dataType[dataType.length - 1] === "tgs") {
          await downloadTgsFile(mediaData, ctx);
       } else if (dataType[dataType.length - 1] === "webm") {
-         await downloadWebpWebmFile(mediaData, ctx, {
-            fileType: "webm",
-            mimeType: "video/webm",
-         });
+         await downloadWebpWebmFile(mediaData, ctx, { fileType: "webm", mimeType: "video/webm" });
       } else {
-         await downloadWebpWebmFile(mediaData, ctx, {
-            fileType: "webp",
-            mimeType: "image/jpeg",
-         });
+         await downloadWebpWebmFile(mediaData, ctx, { fileType: "webp", mimeType: "image/jpeg" });
       }
+
    } catch (error) {
       await ctx.reply(messages.downloadFailed, { parse_mode: "Markdown" });
       console.log("Gagal mengunduh file", error);
@@ -70,24 +65,18 @@ export const downloadWebpWebmFile = async (
          method: "GET",
          responseType: "stream",
       });
-   
-      response.data.pipe(writer);
-   
-      const stickerData = {
-            filePath,
-            mimeType,
-            user,
-      }
-   
-      writer.on("finish", async () => {
-         await sendStickerToWhatsApp(stickerData, ctx);
-         deleteFile(filePath);
-      });
 
-      return new Promise<void>((resolve, reject) => {
+      response.data.pipe(writer);
+
+      await new Promise<void>((resolve, reject) => {
          writer.on("finish", resolve);
          writer.on("error", reject);
       });
+
+      const stickerData = { filePath, mimeType, user };
+      await sendStickerToWhatsApp(stickerData, ctx);
+
+      deleteFile(filePath);
    } catch (error) {
       console.log("Gagal proses webp/webm file", error);
       throw error;

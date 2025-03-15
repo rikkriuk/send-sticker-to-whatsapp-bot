@@ -1,6 +1,7 @@
 const messages = {
    hi: "Hallo, ",
    process: "_Mengirim stiker..._",
+   pending: "_Harap tunggu! Anda sedang mengirim stiker._",
    success: "_Stiker berhasil dikirim!_",
    failed: "_Stiker gagal dikirim!_",
    downloadFailed: "_Gagal mengunduh file_",
@@ -15,8 +16,10 @@ const messages = {
    inValidTextFormat: "_Harap kirimkan pesan dalam format teks._",
    chatNotFound: "_Chat tidak tersedia._",
    help: "_Halo! Ada yang bisa saya bantu?_",
-   stickerLimit:
-     "_Pengiriman stiker kamu telah mencapai batas, mohon tunggu beberapa menit!_",
+   stickerLimit: "_Pengiriman stiker hari ini mencapai batas, kembali lagi besok!_",
+   userNotFound: "_User tidak ditemukan_",
+   updateLimit: "_Limit berhasil ditambah (10+)_",
+   invalidUpdateLimitFormat: "_Masukan format yang benar \nContoh: /limit ID-NUMBER_"
 } as const;
  
 export default messages;

@@ -1,5 +1,4 @@
 import { Context } from "telegraf";
-import { getUser } from "../services/userService";
 import { client } from "../bots/whatsapp";
 import { MessageMedia } from "whatsapp-web.js";
 import fs from "fs";
@@ -11,24 +10,25 @@ export const sendStickerToWhatsApp = async (stickerData: StickerData, ctx: Conte
    const { telegramId, name, username, whatsappNumber } = user;
    const userNumber = `${whatsappNumber}@c.us`;
    
-   await client.sendMessage(
-      userNumber,
-      `Stiker dari Telegram 🎁 \n\n
-      Pengirim\n
-      Nama: ${name}
-      Username: @${username}\n
-      Id Telegram: @${telegramId}`
-   );
-
-   const mediaBuffer = fs.readFileSync(filePath);
-   const media = new MessageMedia(mimeType, mediaBuffer.toString("base64"));
+   try {
+      await client.sendMessage(
+         userNumber,
+         `Stiker dari Telegram 🎁 \n\nPengirim\nNama: ${name}\nUsername: ${username ? '@' + username : '-'}\nId Telegram: ${telegramId}`
+      );
    
-   await client.sendMessage(userNumber, media, {
-      sendMediaAsSticker: true,
-      stickerName: "Sticker",
-      stickerAuthor: "Created by Tumbuhan (@rikkriuk)",
-   });
-  
-   ctx.reply(messages.success, { parse_mode: "Markdown" });
+      const mediaBuffer = fs.readFileSync(filePath);
+      const media = new MessageMedia(mimeType, mediaBuffer.toString("base64"));
+      
+      await client.sendMessage(userNumber, media, {
+         sendMediaAsSticker: true,
+         stickerName: "Sticker",
+         stickerAuthor: "Created by Tumbuhan (@rikkriuk)",
+      });
+
+      ctx.reply(messages.success, { parse_mode: "Markdown" });
+   } catch (error) {
+      console.log("Gagal mengirim stiker ke whatsapp");
+      throw error;
+   }
 };
  
