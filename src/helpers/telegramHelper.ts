@@ -70,18 +70,23 @@ export const handleStickerMessage = async (ctx: Context) => {
    const message = ctx.message as { sticker: { file_id: string } };
    const fileId = message?.sticker?.file_id;
 
+   if (!isClientReady) {
+      ctx.reply(messages.isWhatsappReady, { parse_mode: "Markdown" });
+      return;
+   }
+
    const user = await getUser(ctx.chat?.id);
    if (!user || !user.whatsappNumber) {
       ctx.reply("Klik /start", { parse_mode: "Markdown" });
       return;
    }
 
-   if (!isClientReady) {
-      ctx.reply(messages.isWhatsappReady, { parse_mode: "Markdown" });
+   await resetStickerLimitIfNeeded(user);
+
+   if (user.stickerLimit <= 0) {
+      ctx.reply(messages.stickerLimit, { parse_mode: "Markdown" });
       return;
    }
-
-   await resetStickerLimitIfNeeded(user);
 
    const updatedUser = await setUserProcessing(user._id);
    if (!updatedUser) {
