@@ -7,10 +7,17 @@ import { getFileUrl } from "./fileHelper";
 import { downloadFile } from "../services/stickerService";
 import fs from "fs";
 import { formattedDate } from "./formattedDate";
+import whatsappEmitter from "../events/eventEmitter";
+
+let isClientReady: boolean = false;
 
 const isTextMessage = (message: Message): message is Message.TextMessage => {
    return "text" in message;
 };
+
+whatsappEmitter.on("whatsappReady", () => {
+   isClientReady = true;
+})
 
 export const handleStart = async (ctx: Context) => {
    if (!ctx.chat || ctx.chat.type !== "private") {
@@ -18,17 +25,27 @@ export const handleStart = async (ctx: Context) => {
       return;
    }
    
-   await ctx.reply(messages.hi + ctx.chat.first_name, { parse_mode: "Markdown" });
+   await ctx.reply(`_${messages.hi + ctx.chat.first_name}_`, { parse_mode: "Markdown" });
    const user = await saveOrUpateUser(ctx?.chat);
    await ctx.reply(messages.about, { parse_mode: "Markdown" });
    if (!user.whatsappNumber) {
       await ctx.reply(messages.whatsAppInfo, { parse_mode: "Markdown" });
+   } else {
+      await ctx.reply(messages.existedNumber, { parse_mode: "Markdown" });
    }
 };
 
 export const handleTextMessage = async (ctx: Context) => {
    if (!ctx.message || !isTextMessage(ctx.message)) {
       ctx.reply(messages.inValidTextFormat, { parse_mode: "Markdown" });
+      return;
+   }
+
+   const commandPattern = /^\/([a-zA-Z]+)(?:\s+(.+))?$/;
+   const match = ctx.message.text.match(commandPattern);
+
+   if (match) {
+      ctx.reply(messages.inValidCommand, { parse_mode: "Markdown" });
       return;
    }
 
@@ -56,6 +73,11 @@ export const handleStickerMessage = async (ctx: Context) => {
    const user = await getUser(ctx.chat?.id);
    if (!user || !user.whatsappNumber) {
       ctx.reply("Klik /start", { parse_mode: "Markdown" });
+      return;
+   }
+
+   if (!isClientReady) {
+      ctx.reply(messages.isWhatsappReady, { parse_mode: "Markdown" });
       return;
    }
 
@@ -98,15 +120,15 @@ export const handleProfile = async (ctx: Context) => {
    }
    
    await resetStickerLimitIfNeeded(user);
-   const userInfo = `_Informasi Profile:_\n
+   const userInfo = `_Informasi Profile:\n
    - Nama: ${user.name}
-   - Telegram ID: [${user.telegramId}](tg://user?id=${user.telegramId})
    - Role: ${user.role}
-   - WhatsApp: ${user.whatsappNumber}
+   - WhatsApp: ${user.whatsappNumber ? '+' + user.whatsappNumber : '-'}
    - Sticker Limit: ${user.stickerLimit}
-   - Status Processing: ${user.isProcessing ? "Sedang diproses" : "Tidak diproses"}
-   - Dibuat pada: ${formattedDate(user.createdAt)}
-   - Diperbarui pada: ${formattedDate(user.updatedAt)}`;
+   - Status: ${user.isProcessing ? "Sedang diproses" : "Tidak diproses"}
+   - Dibuat: ${formattedDate(user.createdAt)}
+   - Diperbarui: ${formattedDate(user.updatedAt)}
+   - Telegram ID:_ [${user.telegramId}](tg://user?id=${user.telegramId})`
 
    ctx.reply(userInfo, { parse_mode: "Markdown" });
 }
@@ -118,7 +140,10 @@ export const handleAddLimit = async (ctx: Context) => {
    }
 
    const user = await getUser(ctx.chat?.id);
-   if (user?.role !== "admin") return;
+   if (user?.role !== "admin") {
+      ctx.reply(messages.inValidCommand, { parse_mode: "Markdown" });
+      return;
+   }
 
    const text = ctx.message?.text;
    const match = text?.match(/^\/limit (\d+)$/);
@@ -143,7 +168,10 @@ export const handleListUser = async (ctx: Context) => {
    }
 
    const user = await getUser(ctx.chat?.id);
-   if (user?.role !== "admin") return;
+   // if (user?.role !== "admin") {
+   //    ctx.reply(messages.inValidCommand, { parse_mode: "Markdown" });
+   //    return;
+   // }
 
    const page = parseInt(ctx.message?.text?.split(" ")[1] || "1");
    const limit = 5;
@@ -158,7 +186,7 @@ export const handleListUser = async (ctx: Context) => {
 
    let message = `_Daftar Pengguna (Halaman ${page} dari ${totalPages}):_\n\n`;
    users.forEach((user, index) => {
-      message += `${index + 1}. Nama: ${user.name}, \nTelegram ID: [${user.telegramId}](tg://user?id=${user.telegramId}), \nRole: ${user.role}\nStiker Limit: ${user.stickerLimit}\n`;
+      message += `_${index + 1}. Nama: ${user.name}, \nRole: ${user.role}\nWhatsapp: ${user.whatsappNumber ? '+' + user.whatsappNumber : '-'}\nStiker Limit: ${user.stickerLimit}\nTelegram ID:_ [${user.telegramId}](tg://user?id=${user.telegramId})\n\n`;
    });
 
    let navigationMessage = '';
@@ -170,4 +198,12 @@ export const handleListUser = async (ctx: Context) => {
    }
 
    ctx.reply(message + "\n" + navigationMessage, { parse_mode: "Markdown" });
- };
+};
+
+export const handleHelper = (ctx: Context) => {
+   ctx.reply(messages.about, { parse_mode: "Markdown" });
+}
+
+export const handleGuide = (ctx: Context) => {
+   ctx.reply(messages.guide, { parse_mode: "Markdown" });
+}
