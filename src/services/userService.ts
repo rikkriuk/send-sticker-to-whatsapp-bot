@@ -155,3 +155,11 @@ export const checkAndResetPremium = async (user: IUser) => {
    }
    return user.isPremium;
 };
+
+export const removePremium = async (telegramId: number) => {
+   return await User.findOneAndUpdate(
+      { telegramId },
+      { $set: { isPremium: false, premiumExpiredAt: null } },
+      { new: true }
+   );
+};

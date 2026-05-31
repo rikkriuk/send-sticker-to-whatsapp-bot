@@ -15,6 +15,7 @@ import {
    blockUser, 
    unblockUser, 
    setPremium,
+   removePremium,
 } from "../services/userService";
 import messages from "../constants/messages";
 import { isValidWhatsAppNumber } from "./phoneValidate";
@@ -359,97 +360,144 @@ export const handleUserAction = async (ctx: Context) => {
          reply_markup: {
             inline_keyboard: [
                [
-               { text: "+10", callback_data: `setlimit_${telegramId}_10_${fromPage}` },
-               { text: "+25", callback_data: `setlimit_${telegramId}_25_${fromPage}` },
-               { text: "+50", callback_data: `setlimit_${telegramId}_50_${fromPage}` },
-               { text: "+100", callback_data: `setlimit_${telegramId}_100_${fromPage}` },
+                  { 
+                     text: "+10", 
+                     callback_data: `setlimit_${telegramId}_10_${fromPage}` 
+                  },
+                  { 
+                     text: "+25", 
+                     callback_data: `setlimit_${telegramId}_25_${fromPage}` 
+                  },
+                  { 
+                     text: "+50", 
+                     callback_data: `setlimit_${telegramId}_50_${fromPage}` 
+                  },
+                  { 
+                     text: "+100", 
+                     callback_data: `setlimit_${telegramId}_100_${fromPage}` 
+                  },
                ],
-               [{ text: "❌ Batal", callback_data: `limit_page_${fromPage}` }]
+               [
+                  { 
+                     text: "❌ Batal", 
+                     callback_data: `limit_page_${fromPage}` 
+                  }
+               ]
             ]
          }
          }
       );
       } else if (action === "premium") {
-      await ctx.editMessageText(
-         `*Set premium untuk user \`${telegramId}\`*\nPilih durasi:`,
-         {
-         parse_mode: "Markdown",
-         reply_markup: {
-            inline_keyboard: [
-               [
-               { text: "7 Hari", callback_data: `setpremium_${telegramId}_7_${fromPage}` },
-               { text: "30 Hari", callback_data: `setpremium_${telegramId}_30_${fromPage}` },
-               { text: "90 Hari", callback_data: `setpremium_${telegramId}_90_${fromPage}` },
-               ],
-               [{ text: "❌ Batal", callback_data: `premium_page_${fromPage}` }]
-            ]
-         }
-         }
-      );
-   } else if (action === "block") {
-      await ctx.editMessageText(
-         `*Blokir/Unblokir user \`${telegramId}\`?*`,
-         {
-         parse_mode: "Markdown",
-         reply_markup: {
-            inline_keyboard: [
-               [
-               { text: "🚫 Blokir", callback_data: `setblock_${telegramId}_block_${fromPage}` },
-               { text: "✅ Unblokir", callback_data: `setblock_${telegramId}_unblock_${fromPage}` },
-               ],
-               [{ text: "❌ Batal", callback_data: `block_page_${fromPage}` }]
-            ]
-         }
-         }
-      );
-   }
+         const selectedUser = await getUser(telegramId);
+         await ctx.editMessageText(
+            `*Set premium untuk user \`${telegramId}\`*\nPilih durasi:`,
+            {
+            parse_mode: "Markdown",
+            reply_markup: {
+               inline_keyboard: [
+                  [
+                     { 
+                        text: "7 Hari", 
+                        callback_data: `setpremium_${telegramId}_7_${fromPage}` },
+                     { 
+                        text: "30 Hari", 
+                        callback_data: `setpremium_${telegramId}_30_${fromPage}` },
+                     { 
+                        text: "90 Hari", 
+                        callback_data: `setpremium_${telegramId}_90_${fromPage}` 
+                     },
+                  ],
+                  ...(selectedUser?.isPremium ? [
+                  [
+                     { 
+                        text: "❌ Hapus Premium", 
+                        callback_data: `setpremium_${telegramId}_remove_${fromPage}` 
+                     }
+                  ]] : []),
+                  [
+                     { 
+                        text: "❌ Batal", 
+                        callback_data: `premium_page_${fromPage}` 
+                     }
+                  ]
+               ]
+            }
+            }
+         );
+      } else if (action === "block") {
+         const selectedUser = await getUser(telegramId);
+         await ctx.editMessageText(
+            `*Blokir/Unblokir user \`${telegramId}\`?*`,
+            {
+            parse_mode: "Markdown",
+            reply_markup: {
+               inline_keyboard: [
+                  [
+                     selectedUser?.isBlocked
+                        ? { 
+                           text: "✅ Unblokir", 
+                           callback_data: `setblock_${telegramId}_unblock_${fromPage}` 
+                        } : { 
+                           text: "🚫 Blokir", 
+                           callback_data: `setblock_${telegramId}_block_${fromPage}` 
+                        }
+                  ],
+                  [
+                     { 
+                        text: "❌ Batal", 
+                        callback_data: `block_page_${fromPage}` 
+                     }
+                  ]
+               ]
+            }
+            }
+         );
+      }
 
    await ctx.answerCbQuery();
 };
 
-export const handleExecuteAction = async (ctx: Context) => {
-   const data = (ctx.callbackQuery as any).data as string;
-   const parts = data.split("_");
-   const action = parts[0];
-   const telegramId = parseInt(parts[1]);
-   const value = parts[2];
-   const fromPage = parseInt(parts[3]);
+const notify = (ctx: Context, telegramId: number, message: string) =>
+   ctx.telegram.sendMessage(telegramId, message, { parse_mode: "Markdown" });
 
-   if (action === "setlimit") {
+const actionHandlers: Record<string, (ctx: Context, telegramId: number, value: string) => Promise<void>> = {
+   setlimit: async (ctx, telegramId, value) => {
       await updateLimit(telegramId, parseInt(value));
       await ctx.answerCbQuery(`✅ Limit +${value} berhasil ditambahkan`);
-      await ctx.telegram.sendMessage(
-         telegramId,
-         `✅ *Limit sticker kamu ditambah +${value}!*\nSekarang kamu bisa kirim lebih banyak sticker.`,
-         { parse_mode: "Markdown" }
-      );
-   } else if (action === "setpremium") {
-      await setPremium(telegramId, parseInt(value));
-      await ctx.answerCbQuery(`⭐ Premium ${value} hari berhasil diset`);
-      await ctx.telegram.sendMessage(
-         telegramId,
-         `⭐ *Selamat! Akun kamu sekarang Premium selama ${value} hari.*\nNikmati limit sticker tanpa batas!`,
-         { parse_mode: "Markdown" }
-      );
-   } else if (action === "setblock") {
+      await notify(ctx, telegramId, `✅ *Limit sticker kamu ditambah +${value}!*\nSekarang kamu bisa kirim lebih banyak sticker.`);
+   },
+
+   setpremium: async (ctx, telegramId, value) => {
+      if (value === "remove") {
+         await removePremium(telegramId);
+         await ctx.answerCbQuery("❌ Premium berhasil dihapus");
+         await notify(ctx, telegramId, `❌ *Status Premium kamu telah dihapus.*\nHubungi admin jika ada pertanyaan.`);
+      } else {
+         await setPremium(telegramId, parseInt(value));
+         await ctx.answerCbQuery(`⭐ Premium ${value} hari berhasil diset`);
+         await notify(ctx, telegramId, `⭐ *Selamat! Akun kamu sekarang Premium selama ${value} hari.*\nNikmati limit sticker tanpa batas!`);
+      }
+   },
+
+   setblock: async (ctx, telegramId, value) => {
       if (value === "block") {
          await blockUser(telegramId);
          await ctx.answerCbQuery("🚫 User berhasil diblokir");
-         await ctx.telegram.sendMessage(
-            telegramId,
-            `🚫 *Akun kamu telah diblokir.*\nHubungi admin jika ada pertanyaan.`,
-            { parse_mode: "Markdown" }
-         );
+         await notify(ctx, telegramId, `🚫 *Akun kamu telah diblokir.*\nHubungi admin jika ada pertanyaan.`);
       } else {
          await unblockUser(telegramId);
          await ctx.answerCbQuery("✅ User berhasil diunblokir");
-         await ctx.telegram.sendMessage(
-            telegramId,
-            `✅ *Akun kamu telah diunblokir.*\nKamu sudah bisa menggunakan bot kembali.`,
-            { parse_mode: "Markdown" }
-         );
+         await notify(ctx, telegramId, `✅ *Akun kamu telah diunblokir.*\nKamu sudah bisa menggunakan bot kembali.`);
       }
-   }
+   },
+};
 
+export const handleExecuteAction = async (ctx: Context) => {
+   const data = (ctx.callbackQuery as any).data as string;
+   const [action, telegramIdStr, value, fromPageStr] = data.split("_");
+   const telegramId = parseInt(telegramIdStr);
+   const fromPage = parseInt(fromPageStr);
+
+   await actionHandlers[action]?.(ctx, telegramId, value);
    await handleSelectUser(ctx, action.replace("set", ""), fromPage);
 };
