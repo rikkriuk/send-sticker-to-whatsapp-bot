@@ -6,11 +6,14 @@ export interface IUser extends Document {
   _id?: mongoose.Types.ObjectId,
   telegramId: number;
   name: string;
-  username?: string;
+  userName?: string;
   whatsappNumber?: string;
   stickerLimit: number;
   isProcessing: boolean;
   role: UserRole;
+  isPremium: boolean;
+  premiumExpiredAt: Date | null;
+  isBlocked: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }

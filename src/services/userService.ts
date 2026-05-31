@@ -1,22 +1,23 @@
 import mongoose from "mongoose";
 import { User } from "../models/User";
 import { UserChat } from "../types/userChat";
+import { IUser } from "../types/userModel.type";
 
 export const saveOrUpateUser = async (chat: UserChat) => {
    try {
       const { id, first_name, username, type } = chat;
       let user = await User.findOne({ telegramId: id });
-      console.log({id, first_name, username, type});
+      console.log({id, first_name, userName: username, type});
       console.log("User found:", user);
       if (!user) {
          user = new User({
             telegramId: id,
             name: first_name,
-            username: username || "",
+            userName: username || "",
          })
       } else {
          user.name = first_name;
-         user.username = username || "";
+         user.userName = username || "";
       }
 
       await user.save();
@@ -93,11 +94,11 @@ export const decrementStickerLimit = async (userId: mongoose.Types.ObjectId, rol
    }
 };
 
-export const updateLimit = async (telegramId: number | undefined) => {
+export const updateLimit = async (telegramId: number | undefined, amount?: number) => {
    if (telegramId) {
       const user = await User.findOneAndUpdate(
          { telegramId: telegramId },
-         { $set: { stickerLimit: 10 } },
+         { $set: { stickerLimit: amount || 10 } },
          { new: true }
       )
    
@@ -117,4 +118,40 @@ export const getUsersWithPagination = async (page: number, limit: number) => {
 export const getTotalPages = async (limit: number) => {
    const count = await User.countDocuments();
    return Math.ceil(count / limit);
+};
+
+export const blockUser = async (telegramId: number) => {
+   return await User.findOneAndUpdate(
+      { telegramId },
+      { $set: { isBlocked: true } },
+      { new: true }
+   );
+};
+
+export const unblockUser = async (telegramId: number) => {
+   return await User.findOneAndUpdate(
+      { telegramId },
+      { $set: { isBlocked: false } },
+      { new: true }
+   );
+};
+
+export const setPremium = async (telegramId: number, days: number) => {
+   const expiredAt = new Date();
+   expiredAt.setDate(expiredAt.getDate() + days);
+   return await User.findOneAndUpdate(
+      { telegramId },
+      { $set: { isPremium: true, premiumExpiredAt: expiredAt } },
+      { new: true }
+   );
+};
+
+export const checkAndResetPremium = async (user: IUser) => {
+   if (user.isPremium && user.premiumExpiredAt && new Date() > user.premiumExpiredAt) {
+      await User.findByIdAndUpdate(user._id, {
+         $set: { isPremium: false, premiumExpiredAt: null }
+      });
+      return false;
+   }
+   return user.isPremium;
 };

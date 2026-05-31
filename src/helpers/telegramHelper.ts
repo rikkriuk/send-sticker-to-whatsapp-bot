@@ -1,6 +1,21 @@
 import { Context } from "telegraf";
 import { Message } from "telegraf/types";
-import { decrementStickerLimit, getTotalPages, getUser, getUsersWithPagination, resetStickerLimitIfNeeded, resetUserProcessing, saveOrUpateUser, savePhoneNumber, setUserProcessing, updateLimit } from "../services/userService";
+import { 
+   checkAndResetPremium, 
+   decrementStickerLimit, 
+   getTotalPages, 
+   getUser, 
+   getUsersWithPagination, 
+   resetStickerLimitIfNeeded, 
+   resetUserProcessing, 
+   saveOrUpateUser, 
+   savePhoneNumber, 
+   setUserProcessing, 
+   updateLimit,
+   blockUser, 
+   unblockUser, 
+   setPremium,
+} from "../services/userService";
 import messages from "../constants/messages";
 import { isValidWhatsAppNumber } from "./phoneValidate";
 import { getFileUrl } from "./fileHelper";
@@ -8,6 +23,7 @@ import { downloadFile } from "../services/stickerService";
 import fs from "fs";
 import { formattedDate } from "./formattedDate";
 import whatsappEmitter from "../events/eventEmitter";
+import { setCommandsForUser } from "../middleware/adminMiddleware";
 
 let isClientReady: boolean = false;
 
@@ -27,6 +43,9 @@ export const handleStart = async (ctx: Context) => {
    
    await ctx.reply(`_${messages.hi + ctx.chat.first_name}_`, { parse_mode: "Markdown" });
    const user = await saveOrUpateUser(ctx?.chat);
+
+   await setCommandsForUser(ctx.chat.id, user.role);
+   
    await ctx.reply(messages.about, { parse_mode: "Markdown" });
    if (!user.whatsappNumber) {
       await ctx.reply(messages.whatsAppInfo, { parse_mode: "Markdown" });
@@ -81,6 +100,21 @@ export const handleStickerMessage = async (ctx: Context) => {
       return;
    }
 
+   if (user.isBlocked) {
+      ctx.reply("🚫 Akun kamu telah diblokir. Hubungi admin.", { parse_mode: "Markdown" });
+      return;
+   }
+
+   const isPremium = await checkAndResetPremium(user);
+
+   if (!isPremium) {
+      await resetStickerLimitIfNeeded(user);
+      if (user.stickerLimit <= 0) {
+         ctx.reply(messages.stickerLimit, { parse_mode: "Markdown" });
+         return;
+      }
+   }
+
    if (!user.whatsappNumber) {
       ctx.reply(messages.whatsAppInfo, { parse_mode: "Markdown" });
       return;
@@ -101,13 +135,13 @@ export const handleStickerMessage = async (ctx: Context) => {
    await setUserProcessing(user._id);
    ctx.reply(messages.process, { parse_mode: "Markdown" });
 
-   processSticker(ctx, user, fileId).catch(async (error) => {
+   processSticker(ctx, user, fileId, isPremium).catch(async (error) => {
       console.error("Error processing sticker:", error);
       await resetUserProcessing(user._id);
    });
 };
 
-const processSticker = async (ctx: Context, user: any, fileId: string) => {
+const processSticker = async (ctx: Context, user: any, fileId: string, isPremium: boolean) => {
    try {
       const downloadPath = "/tmp";
       if (!fs.existsSync(downloadPath)) {
@@ -122,7 +156,9 @@ const processSticker = async (ctx: Context, user: any, fileId: string) => {
       };
 
       await downloadFile(mediaData, ctx);
-      await decrementStickerLimit(user._id, user.role);
+      if (!isPremium) {
+         await decrementStickerLimit(user._id, user.role);
+      }
    } catch (error) {
       ctx.reply(messages.failed, { parse_mode: "Markdown" });
       throw error;
@@ -139,15 +175,21 @@ export const handleProfile = async (ctx: Context) => {
    }
    
    await resetStickerLimitIfNeeded(user);
-   const userInfo = `_Informasi Profile:\n
-   - Nama: ${user.name}
-   - Role: ${user.role}
-   - WhatsApp: ${user.whatsappNumber ? '+' + user.whatsappNumber : '-'}
-   - Sticker Limit: ${user.stickerLimit}
-   - Status: ${user.isProcessing ? "Sedang diproses" : "Tidak diproses"}
-   - Dibuat: ${formattedDate(user.createdAt)}
-   - Diperbarui: ${formattedDate(user.updatedAt)}
-   - Telegram ID:_ [${user.telegramId}](tg://user?id=${user.telegramId})`
+   const premiumStatus = user.isPremium && user.premiumExpiredAt 
+      ? `⭐ Premium (exp: ${formattedDate(user.premiumExpiredAt)})`
+      : "Regular";
+
+   const userInfo = `👤 *Informasi Profil:*\n
+*${user.name}* ${user.isPremium ? "⭐" : ""}
+├ Role: ${user.role}
+├ Username: ${user.userName ? `@${user.userName}` : "-"}
+├ WhatsApp: ${user.whatsappNumber ? '+' + `\`${user.whatsappNumber}\`` : '-'}
+├ Sticker Limit: ${user.stickerLimit}
+├ Status Akun: ${premiumStatus}
+├ Proses: ${user.isProcessing ? "Sedang diproses" : "Tidak diproses"}
+├ Dibuat: ${formattedDate(user.createdAt)}
+├ Diperbarui: ${formattedDate(user.updatedAt)}
+└ Telegram ID: [${user.telegramId}](tg://user?id=${user.telegramId})`;
 
    ctx.reply(userInfo, { parse_mode: "Markdown" });
 }
@@ -181,42 +223,58 @@ export const handleAddLimit = async (ctx: Context) => {
 }
 
 export const handleListUser = async (ctx: Context) => {
-   if (!ctx.message || !isTextMessage(ctx.message)) {
-      ctx.reply(messages.inValidTextFormat, { parse_mode: "Markdown" });
+   const page = ctx.callbackQuery
+      ? parseInt((ctx.callbackQuery as any).data.split("_")[1])
+      : 1;
+
+   const limit = 10;
+   const users = await getUsersWithPagination(page, limit);
+   const totalPages = await getTotalPages(limit);
+
+   if (users.length === 0) {
+      ctx.reply(messages.userNotFound, { parse_mode: "Markdown" });
       return;
    }
 
-   const user = await getUser(ctx.chat?.id);
-   // if (user?.role !== "admin") {
-   //    ctx.reply(messages.inValidCommand, { parse_mode: "Markdown" });
-   //    return;
-   // }
-
-   const page = parseInt(ctx.message?.text?.split(" ")[1] || "1");
-   const limit = 5;
-   
-   const users = await getUsersWithPagination(page, limit);
-   const totalPages = await getTotalPages(limit);
- 
-   if (users.length === 0) {
-     ctx.reply(messages.userNotFound, { parse_mode: "Markdown" });
-     return;
-   }
-
-   let message = `_Daftar Pengguna (Halaman ${page} dari ${totalPages}):_\n\n`;
+   let message = `*Daftar Pengguna (Halaman ${page} dari ${totalPages}):*\n\n`;
+  
    users.forEach((user, index) => {
-      message += `_${index + 1}. Nama: ${user.name}, \nRole: ${user.role}\nWhatsapp: ${user.whatsappNumber ? '+' + user.whatsappNumber : '-'}\nStiker Limit: ${user.stickerLimit}\nTelegram ID:_ [${user.telegramId}](tg://user?id=${user.telegramId})\n\n`;
+      const no = (page - 1) * limit + index + 1;
+      const whatsapp = user.whatsappNumber ? `+${user.whatsappNumber}` : "-";
+      const username = user.userName ? `@${user.userName}` : "-";
+
+      message += `*${no}. ${user.name}*\n`;
+      message += `├ Role: ${user.role}\n`;
+      message += `├ Username: ${username}\n`;
+      message += `├ WhatsApp: \`${whatsapp}\`\n`;
+      message += `├ Limit: ${user.stickerLimit}\n`;
+      message += `└ Telegram ID: [${user.telegramId}](tg://user?id=${user.telegramId})`;
    });
 
-   let navigationMessage = '';
+   const buttons = [];
    if (page > 1) {
-      navigationMessage += `/list ${page - 1} - Sebelumnya\n`;
+      buttons.push({ text: "⬅️ Sebelumnya", callback_data: `list_${page - 1}` });
    }
    if (page < totalPages) {
-      navigationMessage += `/list ${page + 1} - Berikutnya\n`;
+      buttons.push({ text: "Berikutnya ➡️", callback_data: `list_${page + 1}` });
    }
 
-   ctx.reply(message + "\n" + navigationMessage, { parse_mode: "Markdown" });
+   const keyboard = buttons.length > 0
+      ? { reply_markup: { inline_keyboard: [buttons] } }
+      : {};
+
+   if (ctx.callbackQuery) {
+      await ctx.editMessageText(message, {
+         parse_mode: "Markdown",
+         ...keyboard,
+      });
+      await ctx.answerCbQuery();
+   } else {
+      ctx.reply(message, {
+         parse_mode: "Markdown",
+         ...keyboard,
+      });
+   }
 };
 
 export const handleHelper = (ctx: Context) => {
@@ -226,3 +284,172 @@ export const handleHelper = (ctx: Context) => {
 export const handleGuide = (ctx: Context) => {
    ctx.reply(messages.guide, { parse_mode: "Markdown" });
 }
+
+export const handleSelectUser = async (ctx: Context, action: string, page: number = 1) => {
+   const limit = 15;
+   const users = await getUsersWithPagination(page, limit);
+   const totalPages = await getTotalPages(limit);
+
+   if (users.length === 0) {
+      ctx.reply(messages.userNotFound, { parse_mode: "Markdown" });
+      return;
+   }
+
+   let message = `*Pilih user untuk ${action} (Halaman ${page} dari ${totalPages}):*\n\n`;
+
+   const userButtons = users.map(user => ([{
+      text: `${user.name} ${user.isPremium ? "⭐" : ""} ${user.isBlocked ? "🚫" : ""}`,
+      callback_data: `${action}_user_${user.telegramId}_${page}`
+   }]));
+
+   const navButtons = [];
+   if (page > 1) navButtons.push({ text: "⬅️ Sebelumnya", callback_data: `${action}_page_${page - 1}` });
+   if (page < totalPages) navButtons.push({ text: "Berikutnya ➡️", callback_data: `${action}_page_${page + 1}` });
+
+   const keyboard = [
+      ...userButtons,
+      ...(navButtons.length > 0 ? [navButtons] : [])
+   ];
+
+   const opts = {
+      parse_mode: "Markdown" as const,
+      reply_markup: { inline_keyboard: keyboard }
+   };
+
+   if (ctx.callbackQuery) {
+      await ctx.editMessageText(message, opts);
+      await ctx.answerCbQuery();
+   } else {
+      ctx.reply(message, opts);
+   }
+};
+
+export const handleLimitCommand = async (ctx: Context) => {
+   await handleSelectUser(ctx, "limit");
+};
+
+export const handlePremiumCommand = async (ctx: Context) => {
+   await handleSelectUser(ctx, "premium");
+};
+
+export const handleBlockCommand = async (ctx: Context) => {
+   await handleSelectUser(ctx, "block");
+};
+
+export const handleUserAction = async (ctx: Context) => {
+   const data = (ctx.callbackQuery as any).data as string;
+   const parts = data.split("_");
+
+   if (parts[1] === "page") {
+      const action = parts[0];
+      const page = parseInt(parts[2]);
+      await handleSelectUser(ctx, action, page);
+      return;
+   }
+
+   const action = parts[0];
+   const telegramId = parseInt(parts[2]);
+   const fromPage = parseInt(parts[3]);
+
+   if (action === "limit") {
+      await ctx.editMessageText(
+         `*Tambah limit untuk user \`${telegramId}\`*\nPilih jumlah limit:`,
+         {
+         parse_mode: "Markdown",
+         reply_markup: {
+            inline_keyboard: [
+               [
+               { text: "+10", callback_data: `setlimit_${telegramId}_10_${fromPage}` },
+               { text: "+25", callback_data: `setlimit_${telegramId}_25_${fromPage}` },
+               { text: "+50", callback_data: `setlimit_${telegramId}_50_${fromPage}` },
+               { text: "+100", callback_data: `setlimit_${telegramId}_100_${fromPage}` },
+               ],
+               [{ text: "❌ Batal", callback_data: `limit_page_${fromPage}` }]
+            ]
+         }
+         }
+      );
+      } else if (action === "premium") {
+      await ctx.editMessageText(
+         `*Set premium untuk user \`${telegramId}\`*\nPilih durasi:`,
+         {
+         parse_mode: "Markdown",
+         reply_markup: {
+            inline_keyboard: [
+               [
+               { text: "7 Hari", callback_data: `setpremium_${telegramId}_7_${fromPage}` },
+               { text: "30 Hari", callback_data: `setpremium_${telegramId}_30_${fromPage}` },
+               { text: "90 Hari", callback_data: `setpremium_${telegramId}_90_${fromPage}` },
+               ],
+               [{ text: "❌ Batal", callback_data: `premium_page_${fromPage}` }]
+            ]
+         }
+         }
+      );
+   } else if (action === "block") {
+      await ctx.editMessageText(
+         `*Blokir/Unblokir user \`${telegramId}\`?*`,
+         {
+         parse_mode: "Markdown",
+         reply_markup: {
+            inline_keyboard: [
+               [
+               { text: "🚫 Blokir", callback_data: `setblock_${telegramId}_block_${fromPage}` },
+               { text: "✅ Unblokir", callback_data: `setblock_${telegramId}_unblock_${fromPage}` },
+               ],
+               [{ text: "❌ Batal", callback_data: `block_page_${fromPage}` }]
+            ]
+         }
+         }
+      );
+   }
+
+   await ctx.answerCbQuery();
+};
+
+export const handleExecuteAction = async (ctx: Context) => {
+   const data = (ctx.callbackQuery as any).data as string;
+   const parts = data.split("_");
+   const action = parts[0];
+   const telegramId = parseInt(parts[1]);
+   const value = parts[2];
+   const fromPage = parseInt(parts[3]);
+
+   if (action === "setlimit") {
+      await updateLimit(telegramId, parseInt(value));
+      await ctx.answerCbQuery(`✅ Limit +${value} berhasil ditambahkan`);
+      await ctx.telegram.sendMessage(
+         telegramId,
+         `✅ *Limit sticker kamu ditambah +${value}!*\nSekarang kamu bisa kirim lebih banyak sticker.`,
+         { parse_mode: "Markdown" }
+      );
+   } else if (action === "setpremium") {
+      await setPremium(telegramId, parseInt(value));
+      await ctx.answerCbQuery(`⭐ Premium ${value} hari berhasil diset`);
+      await ctx.telegram.sendMessage(
+         telegramId,
+         `⭐ *Selamat! Akun kamu sekarang Premium selama ${value} hari.*\nNikmati limit sticker tanpa batas!`,
+         { parse_mode: "Markdown" }
+      );
+   } else if (action === "setblock") {
+      if (value === "block") {
+         await blockUser(telegramId);
+         await ctx.answerCbQuery("🚫 User berhasil diblokir");
+         await ctx.telegram.sendMessage(
+            telegramId,
+            `🚫 *Akun kamu telah diblokir.*\nHubungi admin jika ada pertanyaan.`,
+            { parse_mode: "Markdown" }
+         );
+      } else {
+         await unblockUser(telegramId);
+         await ctx.answerCbQuery("✅ User berhasil diunblokir");
+         await ctx.telegram.sendMessage(
+            telegramId,
+            `✅ *Akun kamu telah diunblokir.*\nKamu sudah bisa menggunakan bot kembali.`,
+            { parse_mode: "Markdown" }
+         );
+      }
+   }
+
+   await handleSelectUser(ctx, action.replace("set", ""), fromPage);
+};

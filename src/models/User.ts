@@ -34,6 +34,18 @@ const UserSchema: Schema = new Schema(
       default: "user",
       required: true,
     },
+    isPremium: { 
+      type: Boolean, 
+      default: false 
+    },
+    premiumExpiredAt: { 
+      type: Date, 
+      default: null 
+    },
+    isBlocked: { 
+      type: Boolean, 
+      default: false 
+    },
   },
   { timestamps: true }
 );

@@ -7,7 +7,6 @@ const migrate = async () => {
   console.log("✅ Connected");
 
   const db = mongoose.connection.db;
-
   if (!db) return;
 
   await db.collection("users").updateMany(
@@ -17,11 +16,17 @@ const migrate = async () => {
         stickerLimit: 10,
         isProcessing: false,
       },
-      $setOnInsert: {
-        whatsappNumber: null,
-        userName: null,
-      }
     }
+  );
+
+  await db.collection("users").updateMany(
+    { isPremium: { $exists: false } },
+    { $set: { isPremium: false, premiumExpiredAt: null } }
+  );
+
+  await db.collection("users").updateMany(
+    { isBlocked: { $exists: false } },
+    { $set: { isBlocked: false } }
   );
 
   console.log("✅ Migration done");
