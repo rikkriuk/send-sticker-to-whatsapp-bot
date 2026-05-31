@@ -25,6 +25,7 @@ import fs from "fs";
 import { formattedDate } from "./formattedDate";
 import whatsappEmitter from "../events/eventEmitter";
 import { setCommandsForUser } from "../middleware/adminMiddleware";
+import { ADMIN_TELEGRAM_USERNAME } from "../constants/roles";
 
 let isClientReady: boolean = false;
 
@@ -108,10 +109,19 @@ export const handleStickerMessage = async (ctx: Context) => {
 
    const isPremium = await checkAndResetPremium(user);
 
+   const replyStickerLimit = (ctx: Context) => ctx.reply(messages.stickerLimit, {
+      parse_mode: "Markdown",
+      reply_markup: {
+         inline_keyboard: [[
+            { text: "⭐ Upgrade Premium", url: `https://t.me/${ADMIN_TELEGRAM_USERNAME}` }
+         ]]
+      }
+   });
+
    if (!isPremium) {
       await resetStickerLimitIfNeeded(user);
       if (user.stickerLimit <= 0) {
-         ctx.reply(messages.stickerLimit, { parse_mode: "Markdown" });
+         await replyStickerLimit(ctx);
          return;
       }
    }
@@ -124,7 +134,7 @@ export const handleStickerMessage = async (ctx: Context) => {
    await resetStickerLimitIfNeeded(user);
 
    if (user.stickerLimit <= 0) {
-      ctx.reply(messages.stickerLimit, { parse_mode: "Markdown" });
+      await replyStickerLimit(ctx);
       return;
    }
 
@@ -244,12 +254,12 @@ export const handleListUser = async (ctx: Context) => {
       const whatsapp = user.whatsappNumber ? `+${user.whatsappNumber}` : "-";
       const username = user.userName ? `@${user.userName}` : "-";
 
-      message += `*${no}. ${user.name}*\n`;
+      message += `*${no}. ${user.name}* ${user.isPremium ? "⭐" : ""}\n`;
       message += `├ Role: ${user.role}\n`;
       message += `├ Username: ${username}\n`;
       message += `├ WhatsApp: \`${whatsapp}\`\n`;
       message += `├ Limit: ${user.stickerLimit}\n`;
-      message += `└ Telegram ID: [${user.telegramId}](tg://user?id=${user.telegramId})`;
+      message += `└ Telegram ID: [${user.telegramId}](tg://user?id=${user.telegramId})\n\n`
    });
 
    const buttons = [];
