@@ -76,8 +76,13 @@ export const handleStickerMessage = async (ctx: Context) => {
    }
 
    const user = await getUser(ctx.chat?.id);
-   if (!user || !user.whatsappNumber) {
+   if (!user) {
       ctx.reply("Klik /start", { parse_mode: "Markdown" });
+      return;
+   }
+
+   if (!user.whatsappNumber) {
+      ctx.reply(messages.whatsAppInfo, { parse_mode: "Markdown" });
       return;
    }
 
@@ -88,32 +93,41 @@ export const handleStickerMessage = async (ctx: Context) => {
       return;
    }
 
-   const updatedUser = await setUserProcessing(user._id);
-   if (!updatedUser) {
+   if (user.isProcessing) {
       ctx.reply(messages.pending, { parse_mode: "Markdown" });
       return;
    }
-   
+
+   await setUserProcessing(user._id);
    ctx.reply(messages.process, { parse_mode: "Markdown" });
+
+   processSticker(ctx, user, fileId).catch(async (error) => {
+      console.error("Error processing sticker:", error);
+      await resetUserProcessing(user._id);
+   });
+};
+
+const processSticker = async (ctx: Context, user: any, fileId: string) => {
    try {
       const downloadPath = "/tmp";
       if (!fs.existsSync(downloadPath)) {
          fs.mkdirSync(downloadPath, { recursive: true });
       }
-      
+
       const mediaData = {
          user: user,
          fileUrl: await getFileUrl(fileId),
          fileName: `${new Date().getTime()}`,
          downloadPath: downloadPath,
       };
-   
+
       await downloadFile(mediaData, ctx);
       await decrementStickerLimit(user._id, user.role);
    } catch (error) {
       ctx.reply(messages.failed, { parse_mode: "Markdown" });
-      await resetUserProcessing(user._id);
       throw error;
+   } finally {
+      await resetUserProcessing(user._id);
    }
 };
 

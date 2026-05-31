@@ -11,3 +11,7 @@ export const isValidWhatsAppNumber = (number: string): string | null => {
 
    return null;
 };
+
+export const removePlusInNumber = (number: string): string => {
+   return number.replace(/\+/g, "");
+}

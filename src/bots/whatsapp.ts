@@ -1,23 +1,53 @@
-import { Client, LocalAuth } from "whatsapp-web.js";
+import makeWASocket, {
+  useMultiFileAuthState,
+  DisconnectReason,
+  fetchLatestBaileysVersion,
+} from "@whiskeysockets/baileys";
 import qrcode from "qrcode-terminal";
 import whatsappEmitter from "../events/eventEmitter";
+import { Boom } from "@hapi/boom";
 
-const client = new Client({
-  authStrategy: new LocalAuth(),
-  puppeteer: {
-    args: ["--no-sandbox", "--disable-setuid-sandbox", "--single-process"],
-  },
-});
+let sock: ReturnType<typeof makeWASocket>;
 
-client.on("ready", () => {
-  console.log("Client is ready!");
-  whatsappEmitter.emit("whatsappReady");
-});
+const connectToWhatsApp = async () => {
+  const { state, saveCreds } = await useMultiFileAuthState("auth_info_baileys");
+  const { version } = await fetchLatestBaileysVersion();
 
-client.on("qr", (qr: string) => {
-  qrcode.generate(qr, { small: true });
-});
+  sock = makeWASocket({
+    version,
+    auth: state,
+    printQRInTerminal: false,
+  });
 
-client.initialize();
+  sock.ev.on("creds.update", saveCreds);
 
-export { client, whatsappEmitter };
+  sock.ev.on("connection.update", async (update) => {
+    const { connection, lastDisconnect, qr } = update;
+
+    if (qr) {
+      qrcode.generate(qr, { small: true });
+    }
+
+    if (connection === "open") {
+      console.log("✅ Client is ready!");
+      whatsappEmitter.emit("whatsappReady");
+    }
+
+    if (connection === "close") {
+      const shouldReconnect =
+        (lastDisconnect?.error as Boom)?.output?.statusCode !==
+        DisconnectReason.loggedOut;
+
+      console.log("❌ Disconnected. Reconnecting:", shouldReconnect);
+
+      if (shouldReconnect) {
+        await connectToWhatsApp();
+      }
+    }
+  });
+};
+
+connectToWhatsApp();
+
+export { sock as client };
+export { whatsappEmitter };
