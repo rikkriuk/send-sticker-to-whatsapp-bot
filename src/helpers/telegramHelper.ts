@@ -131,13 +131,6 @@ export const handleStickerMessage = async (ctx: Context) => {
       return;
    }
 
-   await resetStickerLimitIfNeeded(user);
-
-   if (user.stickerLimit <= 0) {
-      await replyStickerLimit(ctx);
-      return;
-   }
-
    if (user.isProcessing) {
       ctx.reply(messages.pending, { parse_mode: "Markdown" });
       return;
