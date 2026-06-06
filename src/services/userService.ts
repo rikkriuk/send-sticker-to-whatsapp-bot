@@ -7,9 +7,10 @@ export const saveOrUpateUser = async (chat: UserChat) => {
    try {
       const { id, first_name, username, type } = chat;
       let user = await User.findOne({ telegramId: id });
-      console.log({id, first_name, userName: username, type});
-      console.log("User found:", user);
+      let isNewUser = false;
+
       if (!user) {
+         isNewUser = true;
          user = new User({
             telegramId: id,
             name: first_name,
@@ -21,8 +22,7 @@ export const saveOrUpateUser = async (chat: UserChat) => {
       }
 
       await user.save();
-      console.log(user);
-      return user;
+      return { user, isNewUser };
    } catch (error) {
       console.error("Error saat memperbaharui data user:", error);
       throw error;

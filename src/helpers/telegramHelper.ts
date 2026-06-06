@@ -44,9 +44,35 @@ export const handleStart = async (ctx: Context) => {
    }
    
    await ctx.reply(`_${messages.hi + ctx.chat.first_name}_`, { parse_mode: "Markdown" });
-   const user = await saveOrUpateUser(ctx?.chat);
+   const { user, isNewUser } = await saveOrUpateUser(ctx?.chat);
 
    await setCommandsForUser(ctx.chat.id, user.role);
+
+   if (isNewUser) {
+      try {
+         const adminMessage = `Ada Pengguna Baru! \n\n👤 *Informasi:*
+\n*${user.name}* ${user.isPremium ? "⭐" : ""}
+├ Role: ${user.role}
+├ Username: ${user.userName ? `@${user.userName}` : "-"}
+├ WhatsApp: ${user.whatsappNumber ? '+' + `${user.whatsappNumber}` : '-'}
+├ Sticker Limit: ${user.stickerLimit}
+├ Dibuat: ${formattedDate(user.createdAt)}
+└ Telegram ID: [${user.telegramId}](tg://user?id=${user.telegramId})`;
+
+         const adminTarget = ADMIN_TELEGRAM_USERNAME ? `@${ADMIN_TELEGRAM_USERNAME}` : undefined;
+         if (adminTarget) {
+            await ctx.telegram.sendMessage(
+               adminTarget, 
+               adminMessage, 
+               { 
+                  parse_mode: "Markdown" 
+               }
+            );
+         }
+      } catch (e) {
+         console.warn("Gagal mengirim notifikasi user baru ke admin:", e);
+      }
+   }
    
    await ctx.reply(messages.about, { parse_mode: "Markdown" });
    if (!user.whatsappNumber) {
