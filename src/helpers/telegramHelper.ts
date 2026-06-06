@@ -25,7 +25,7 @@ import fs from "fs";
 import { formattedDate } from "./formattedDate";
 import whatsappEmitter from "../events/eventEmitter";
 import { setCommandsForUser } from "../middleware/adminMiddleware";
-import { ADMIN_TELEGRAM_USERNAME } from "../constants/roles";
+import { ADMIN_TELEGRAM_USERNAME, ROLES } from "../constants/roles";
 
 let isClientReady: boolean = false;
 
@@ -131,17 +131,21 @@ export const handleStickerMessage = async (ctx: Context) => {
       return;
    }
 
-   if (user.isProcessing) {
-      ctx.reply(messages.pending, { parse_mode: "Markdown" });
-      return;
+   const isAdmin = user.role === ROLES.ADMIN;
+
+   if (!isAdmin) {
+      if (user.isProcessing) {
+         ctx.reply(messages.pending, { parse_mode: "Markdown" });
+         return;
+      }
+      await setUserProcessing(user._id);
    }
 
-   await setUserProcessing(user._id);
    ctx.reply(messages.process, { parse_mode: "Markdown" });
 
    processSticker(ctx, user, fileId, isPremium).catch(async (error) => {
       console.error("Error processing sticker:", error);
-      await resetUserProcessing(user._id);
+      if (!isAdmin) await resetUserProcessing(user._id);
    });
 };
 
@@ -167,7 +171,9 @@ const processSticker = async (ctx: Context, user: any, fileId: string, isPremium
       ctx.reply(messages.failed, { parse_mode: "Markdown" });
       throw error;
    } finally {
-      await resetUserProcessing(user._id);
+      if (user.role !== ROLES.ADMIN) {
+         await resetUserProcessing(user._id)
+      };
    }
 };
 

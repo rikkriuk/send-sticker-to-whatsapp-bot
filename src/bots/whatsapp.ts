@@ -3,6 +3,8 @@ import makeWASocket, {
   DisconnectReason,
   fetchLatestBaileysVersion,
 } from "@whiskeysockets/baileys";
+import { downloadContentFromMessage, proto } from "@whiskeysockets/baileys";
+import { addStickerMetadata, makeBackgroundTransparent } from "../helpers/stickerExif";
 import qrcode from "qrcode-terminal";
 import whatsappEmitter from "../events/eventEmitter";
 import { Boom } from "@hapi/boom";
@@ -43,6 +45,57 @@ const connectToWhatsApp = async () => {
       if (shouldReconnect) {
         await connectToWhatsApp();
       }
+    }
+  });
+
+  sock.ev.on("messages.upsert", async (m) => {
+    try {
+      const messages = m.messages;
+      for (const msg of messages) {
+        if (!msg.message || msg.key.fromMe) continue;
+
+        const message = msg.message;
+        const imageMsg = 
+          (message as any).imageMessage || (message as any).documentMessage;
+          
+        const caption = 
+          imageMsg?.caption 
+            || (message?.conversation as any) 
+            || (message?.extendedTextMessage?.text as any);
+
+        if (!imageMsg || !caption) continue;
+
+        const trimmed = String(caption).trim();
+
+        if (trimmed === ".sticker" || trimmed === ".sticker-t") {
+          const jid = msg.key.remoteJid as string;
+
+          const stream = await downloadContentFromMessage(imageMsg, "image");
+          const chunks: Buffer[] = [];
+          for await (const chunk of stream) {
+            chunks.push(Buffer.from(chunk));
+          }
+          let buffer: Buffer = Buffer.concat(chunks);
+
+          if (trimmed === ".sticker-t") {
+            try {
+              buffer = await makeBackgroundTransparent(buffer);
+            } catch (e) {
+              console.warn("Failed to make background transparent:", e);
+            }
+          }
+
+          const stickerBuffer = await addStickerMetadata(
+            buffer,
+            "Sticker",
+            "Created by @SendStickerBot (WhatsApp)"
+          );
+
+          await sock.sendMessage(jid, { sticker: stickerBuffer });
+        }
+      }
+    } catch (error) {
+      console.error("Error processing incoming whatsapp message for sticker:", error);
     }
   });
 };
