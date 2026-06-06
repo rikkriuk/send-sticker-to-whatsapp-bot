@@ -22,7 +22,7 @@ export const makeBackgroundTransparent = async (
 ): Promise<Buffer> => {
    return new Promise((resolve, reject) => {
       const scriptPath = path.join(__dirname, "../scripts/remove_bg.py");
-      const proc = spawn("python", [scriptPath]);
+      const proc = spawn("python3", [scriptPath]);
 
       const chunks: Buffer[] = [];
       const errorChunks: Buffer[] = [];
