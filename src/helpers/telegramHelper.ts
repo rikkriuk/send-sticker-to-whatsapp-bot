@@ -25,7 +25,7 @@ import fs from "fs";
 import { formattedDate } from "./formattedDate";
 import whatsappEmitter from "../events/eventEmitter";
 import { setCommandsForUser } from "../middleware/adminMiddleware";
-import { ADMIN_TELEGRAM_USERNAME, ROLES } from "../constants/roles";
+import { ADMIN_TELEGRAM_ID, ADMIN_TELEGRAM_USERNAME, ROLES } from "../constants/roles";
 
 let isClientReady: boolean = false;
 
@@ -59,16 +59,13 @@ export const handleStart = async (ctx: Context) => {
 ├ Dibuat: ${formattedDate(user.createdAt)}
 └ Telegram ID: [${user.telegramId}](tg://user?id=${user.telegramId})`;
 
-         const adminTarget = ADMIN_TELEGRAM_USERNAME ? `@${ADMIN_TELEGRAM_USERNAME}` : undefined;
-         if (adminTarget) {
-            await ctx.telegram.sendMessage(
-               adminTarget, 
-               adminMessage, 
-               { 
-                  parse_mode: "Markdown" 
-               }
-            );
-         }
+         await ctx.telegram.sendMessage(
+            ADMIN_TELEGRAM_ID, 
+            adminMessage, 
+            { 
+               parse_mode: "Markdown" 
+            }
+         );
       } catch (e) {
          console.warn("Gagal mengirim notifikasi user baru ke admin:", e);
       }

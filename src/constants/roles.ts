@@ -1,4 +1,5 @@
 export const ADMIN_TELEGRAM_USERNAME = process.env.ADMIN_USERNAME || "rikkriuk";
+export const ADMIN_TELEGRAM_ID = parseInt(process.env.ADMIN_TELEGRAM_ID || "");
 
 export const USER_COMMANDS = [
    { 
