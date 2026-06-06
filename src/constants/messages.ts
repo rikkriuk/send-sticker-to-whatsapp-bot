@@ -9,7 +9,7 @@ const messages = {
   downloadFailed: "_Gagal mengunduh file_",
   about:
     `_Bot ini dirancang untuk memungkinkan pengguna mengirim stiker dari Telegram ke WhatsApp dengan mudah. \n\n/start - Mulai bot \n/help - Tentang bot \n/guide - Panduan bot\n/profile - informasi pengguna \n \n\nDeveloper: @${ADMIN_TELEGRAM_USERNAME}_`,
-  whatsAppInfo: `_Bot belum menemukan nomor WhatsApp kamu, silahkan masukkan nomor WhatsApp! \n\nContoh: 085722710523
+  whatsAppInfo: `_Bot belum menemukan nomor WhatsApp kamu, silahkan tulis nomor WhatsApp! \n\nNomor yang kamu masukan akan menjadi tempat penerima stiker yang masuk lewat pesan.  \n\nContoh: 085722710523
   _`,
   invalidNumber:
     "_Nomor tidak valid, silahkan masukkan nomor yang benar! \n\nContoh: 085722710523_",
