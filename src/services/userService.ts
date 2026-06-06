@@ -163,3 +163,7 @@ export const removePremium = async (telegramId: number) => {
       { new: true }
    );
 };
+
+export const deleteUser = async (telegramId: number) => {
+   return await User.findOneAndDelete({ telegramId });
+}

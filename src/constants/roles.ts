@@ -34,6 +34,10 @@ export const ADMIN_COMMANDS = [
       description: "⭐ Set premium user" 
    },
    { 
+      command: "delete",  
+      description: "🗑️ Hapus user" 
+   },
+   { 
       command: "block",
       description: "🚫 Blokir/Unblokir user" 
    },

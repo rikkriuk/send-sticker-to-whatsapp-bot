@@ -16,6 +16,7 @@ import {
    unblockUser, 
    setPremium,
    removePremium,
+   deleteUser,
 } from "../services/userService";
 import messages from "../constants/messages";
 import { isValidWhatsAppNumber } from "./phoneValidate";
@@ -369,6 +370,10 @@ export const handleBlockCommand = async (ctx: Context) => {
    await handleSelectUser(ctx, "block");
 };
 
+export const handleDeleteCommand = async (ctx: Context) => {
+   await handleSelectUser(ctx, "delete");
+};
+
 export const handleUserAction = async (ctx: Context) => {
    const data = (ctx.callbackQuery as any).data as string;
    const parts = data.split("_");
@@ -419,72 +424,98 @@ export const handleUserAction = async (ctx: Context) => {
          }
          }
       );
-      } else if (action === "premium") {
-         const selectedUser = await getUser(telegramId);
-         await ctx.editMessageText(
-            `*Set premium untuk user \`${telegramId}\`*\nPilih durasi:`,
-            {
-            parse_mode: "Markdown",
-            reply_markup: {
-               inline_keyboard: [
-                  [
-                     { 
-                        text: "7 Hari", 
-                        callback_data: `setpremium_${telegramId}_7_${fromPage}` },
-                     { 
-                        text: "30 Hari", 
-                        callback_data: `setpremium_${telegramId}_30_${fromPage}` },
-                     { 
-                        text: "90 Hari", 
-                        callback_data: `setpremium_${telegramId}_90_${fromPage}` 
-                     },
-                  ],
-                  ...(selectedUser?.isPremium ? [
-                  [
-                     { 
-                        text: "❌ Hapus Premium", 
-                        callback_data: `setpremium_${telegramId}_remove_${fromPage}` 
-                     }
-                  ]] : []),
-                  [
-                     { 
-                        text: "❌ Batal", 
-                        callback_data: `premium_page_${fromPage}` 
-                     }
-                  ]
+   } else if (action === "premium") {
+      const selectedUser = await getUser(telegramId);
+      await ctx.editMessageText(
+         `*Set premium untuk user \`${telegramId}\`*\nPilih durasi:`,
+         {
+         parse_mode: "Markdown",
+         reply_markup: {
+            inline_keyboard: [
+               [
+                  { 
+                     text: "7 Hari", 
+                     callback_data: `setpremium_${telegramId}_7_${fromPage}` },
+                  { 
+                     text: "30 Hari", 
+                     callback_data: `setpremium_${telegramId}_30_${fromPage}` },
+                  { 
+                     text: "90 Hari", 
+                     callback_data: `setpremium_${telegramId}_90_${fromPage}` 
+                  },
+               ],
+               ...(selectedUser?.isPremium ? [
+               [
+                  { 
+                     text: "❌ Hapus Premium", 
+                     callback_data: `setpremium_${telegramId}_remove_${fromPage}` 
+                  }
+               ]] : []),
+               [
+                  { 
+                     text: "❌ Batal", 
+                     callback_data: `premium_page_${fromPage}` 
+                  }
                ]
-            }
-            }
-         );
-      } else if (action === "block") {
-         const selectedUser = await getUser(telegramId);
-         await ctx.editMessageText(
-            `*Blokir/Unblokir user \`${telegramId}\`?*`,
-            {
-            parse_mode: "Markdown",
-            reply_markup: {
-               inline_keyboard: [
-                  [
-                     selectedUser?.isBlocked
-                        ? { 
-                           text: "✅ Unblokir", 
-                           callback_data: `setblock_${telegramId}_unblock_${fromPage}` 
-                        } : { 
-                           text: "🚫 Blokir", 
-                           callback_data: `setblock_${telegramId}_block_${fromPage}` 
-                        }
-                  ],
-                  [
-                     { 
-                        text: "❌ Batal", 
-                        callback_data: `block_page_${fromPage}` 
+            ]
+         }
+         }
+      );
+   } else if (action === "block") {
+      const selectedUser = await getUser(telegramId);
+      await ctx.editMessageText(
+         `*Blokir/Unblokir user \`${telegramId}\`?*`,
+         {
+         parse_mode: "Markdown",
+         reply_markup: {
+            inline_keyboard: [
+               [
+                  selectedUser?.isBlocked
+                     ? { 
+                        text: "✅ Unblokir", 
+                        callback_data: `setblock_${telegramId}_unblock_${fromPage}` 
+                     } : { 
+                        text: "🚫 Blokir", 
+                        callback_data: `setblock_${telegramId}_block_${fromPage}` 
                      }
-                  ]
+               ],
+               [
+                  { 
+                     text: "❌ Batal", 
+                     callback_data: `block_page_${fromPage}` 
+                  }
                ]
-            }
-            }
-         );
+            ]
+         }
+         }
+      );
+   } else if (action === "delete") {
+      const selectedUser = await getUser(telegramId);
+      if (!selectedUser) {
+         await ctx.answerCbQuery("User tidak ditemukan");
+         return;
       }
+      await ctx.editMessageText(
+         `*Hapus user \`${telegramId}\`?*\n\n⚠️ Tindakan ini tidak bisa dibatalkan!\n\n👤 ${selectedUser.name} ${selectedUser.isPremium ? "⭐" : ""}\n└ Username: ${selectedUser.userName ? `@${selectedUser.userName}` : "-"}`,
+         {
+            parse_mode: "Markdown",
+            reply_markup: {
+               inline_keyboard: [
+                  [
+                     {
+                        text: "🗑️ Ya, Hapus",
+                        callback_data: `setdelete_${telegramId}_confirm_${fromPage}`
+                     },
+                     {
+                        text: "❌ Batal",
+                        callback_data: `delete_page_${fromPage}`
+                     }
+                  ]
+               ]
+            }
+         }
+      );
+   }
 
    await ctx.answerCbQuery();
 };
@@ -520,6 +551,18 @@ const actionHandlers: Record<string, (ctx: Context, telegramId: number, value: s
          await unblockUser(telegramId);
          await ctx.answerCbQuery("✅ User berhasil diunblokir");
          await notify(ctx, telegramId, `✅ *Akun kamu telah diunblokir.*\nKamu sudah bisa menggunakan bot kembali.`);
+      }
+   },
+
+   setdelete: async (ctx, telegramId, value) => {
+      if (value === "confirm") {
+         await deleteUser(telegramId);
+         await ctx.answerCbQuery("🗑️ User berhasil dihapus");
+         try {
+            await notify(ctx, telegramId, `🗑️ *Akun kamu telah dihapus dari sistem.*\nHubungi admin jika ada pertanyaan.`);
+         } catch (_) {}
+      } else {
+         await ctx.answerCbQuery("❌ Dibatalkan");
       }
    },
 };
