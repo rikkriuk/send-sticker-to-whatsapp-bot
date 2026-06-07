@@ -8,6 +8,7 @@ const targetSizes = [
    { q: 30, fps: 12 },
    { q: 20, fps: 10 },
    { q: 10, fps: 8 },
+   { q: 5, fps: 8 },
 ];
 
 const convertToWebp = async (input: string, frameRate: number, output: string): Promise<void> => {
