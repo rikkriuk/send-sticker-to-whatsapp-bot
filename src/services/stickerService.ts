@@ -67,7 +67,7 @@ export const downloadTgsFile = async (mediaData: MediaData, ctx: any) => {
 
       const width = 512, height = 512;
       const canvas = createCanvas(width, height);
-      const anim = lottie.loadAnimation({
+      const anim = lottie.factory({
          animationData: lottieJson,
          renderer: "canvas",
          rendererSettings: { context: canvas.getContext("2d") },
