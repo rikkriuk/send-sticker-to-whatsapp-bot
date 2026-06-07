@@ -1,39 +1,45 @@
 import fs from "fs";
 import ffmpeg from "fluent-ffmpeg";
 
-const MAX_SIZE_BYTES = 500 * 1024;
+const MAX_ASSET_SIZE = 800 * 1024;
 
-const compressWebp = async (webpPath: string): Promise<void> => {
-   const stats = fs.statSync(webpPath);
-   if (stats.size <= MAX_SIZE_BYTES) return;
+const targetSizes = [
+   { q: 50, fps: 15 },
+   { q: 30, fps: 12 },
+   { q: 20, fps: 10 },
+   { q: 10, fps: 8 },
+];
 
-   const qualities = [40, 30, 20, 10];
-   for (const q of qualities) {
-      const tmpPath = `${webpPath}.tmp.webp`;
+const convertToWebp = async (input: string, frameRate: number, output: string): Promise<void> => {
+   for (const { q, fps } of targetSizes) {
+      const options = [
+         "-vcodec", "libwebp_anim",
+         "-vf", `scale=512:512:force_original_aspect_ratio=decrease,fps=${fps}`,
+         "-loop", "0",
+         "-preset", "default",
+         "-compression_level", "6",
+         "-q:v", `${q}`,
+         "-an", "-vsync", "0",
+         "-t", "00:00:06",
+      ];
+
       await new Promise<void>((resolve, reject) => {
-         ffmpeg(webpPath)
-            .outputOptions([
-               "-vcodec", "libwebp_anim",
-               "-loop", "0",
-               "-preset", "default",
-               "-compression_level", "6",
-               "-q:v", `${q}`,
-               "-an",
-            ])
-            .output(tmpPath)
+         ffmpeg()
+            .input(input)
+            .inputFPS(frameRate)
+            .outputOptions(options)
+            .output(output)
             .on("end", () => resolve())
-            .on("error", reject)
+            .on("error", (err) => reject(err))
             .run();
       });
 
-      const newSize = fs.statSync(tmpPath).size;
-      fs.renameSync(tmpPath, webpPath);
-      console.log(`Compressed to q=${q}: ${newSize} bytes`);
-
-      if (newSize <= MAX_SIZE_BYTES) break;
+      const size = fs.statSync(output).size;
+      console.log(`WebP size q=${q} fps=${fps}: ${size} bytes`);
+      if (size <= MAX_ASSET_SIZE) break;
    }
 };
 
 export {
-   compressWebp,
+   convertToWebp,
 }

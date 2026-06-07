@@ -1,6 +1,5 @@
 import axios from "axios";
 import fs from "fs";
-import ffmpeg from "fluent-ffmpeg";
 import { sendStickerToWhatsApp } from "../helpers/whatsappHelper";
 import { deleteFile } from "../helpers/fileHelper";
 import messages from "../constants/messages";
@@ -8,28 +7,7 @@ import { MediaData } from "../types/media.type";
 import { execSync } from "child_process";
 import path from "path";
 import { getUserQueue } from "../helpers/queque";
-import { compressWebp } from "../helpers/compress";
-
-const convertToAnimatedWebp = (inputPath: string, outputPath: string): Promise<void> => {
-   return new Promise((resolve, reject) => {
-      ffmpeg(inputPath)
-         .outputOptions([
-            "-vcodec", "libwebp_anim",
-            "-vf", "scale=512:512:force_original_aspect_ratio=decrease,fps=15",
-            "-loop", "0",
-            "-preset", "default",
-            "-compression_level", "6",
-            "-q:v", "50",
-            "-an",
-            "-vsync", "0",
-            "-t", "00:00:06",
-         ])
-         .output(outputPath)
-         .on("end", () => resolve())
-         .on("error", reject)
-         .run();
-   });
-};
+import { convertToWebp  } from "../helpers/compress";
 
 export const downloadFile = async (mediaData: MediaData, ctx: any) => {
    const queue = getUserQueue(mediaData.user.telegramId);
@@ -74,31 +52,15 @@ export const downloadTgsFile = async (mediaData: MediaData, ctx: any) => {
       const [, , frStr] = result.split(":");
       const frameRate = parseFloat(frStr) || 60;
 
-      await new Promise<void>((resolve, reject) => {
-         ffmpeg()
-            .input(`${framesDir}/frame_%04d.png`)
-            .inputFPS(frameRate)
-            .outputOptions([
-               "-vcodec", "libwebp_anim",
-               "-vf", "scale=512:512:force_original_aspect_ratio=decrease,fps=12",
-               "-loop", "0",
-               "-preset", "default",
-               "-compression_level", "6",
-               "-q:v", "25",
-               "-an",
-               "-vsync", "0",
-               "-t", "00:00:06",
-            ])
-            .output(webpPath)
-            .on("end", () => resolve())
-            .on("error", reject)
-            .run();
-      });
+      await convertToWebp (
+         `${framesDir}/frame_%04d.png`, 
+         frameRate, 
+         webpPath
+      );
 
       const stats = fs.statSync(webpPath);
       console.log("WebP size:", stats.size, "bytes");
 
-      await compressWebp(webpPath);
       await sendStickerToWhatsApp({ filePath: webpPath, mimeType: "image/webp", user }, ctx);
 
    } catch (error) {
@@ -131,11 +93,11 @@ export const downloadWebmFile = async (mediaData: MediaData, ctx: any) => {
          throw new Error("Downloaded WebM file is empty");
       }
 
-      await convertToAnimatedWebp(webmPath, webpPath);
+      await convertToWebp (webmPath, 30, webpPath);
+      
       const stats = fs.statSync(webpPath);
       console.log("WebP size:", stats.size, "bytes");
 
-      await compressWebp(webpPath);
       await sendStickerToWhatsApp({ filePath: webpPath, mimeType: "image/webp", user }, ctx);
 
       deleteFile(webmPath);
@@ -154,6 +116,7 @@ export const downloadWebpWebmFile = async (
    const { user, fileUrl, fileName, downloadPath } = mediaData;
    const { fileType, mimeType } = options;
    const filePath = `${downloadPath}/${fileName}.${fileType}`;
+   const outPath = `${downloadPath}/${fileName}_out.webp`
 
    try {
       const writer = fs.createWriteStream(filePath);
@@ -165,11 +128,11 @@ export const downloadWebpWebmFile = async (
          writer.on("error", reject);
       });
 
-      if (fileType === "webp") {
-         await compressWebp(filePath);
-      }
-      await sendStickerToWhatsApp({ filePath, mimeType, user }, ctx);
+      await convertToWebp (filePath, 30, outPath);
+      await sendStickerToWhatsApp({ filePath: outPath, mimeType, user }, ctx);
+
       deleteFile(filePath);
+      deleteFile(outPath);
    } catch (error) {
       console.log("Gagal proses webp/webm file", error);
       throw error;
