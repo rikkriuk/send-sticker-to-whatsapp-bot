@@ -7,6 +7,9 @@ import messages from "../constants/messages";
 import { MediaData } from "../types/media.type";
 import { execSync } from "child_process";
 import path from "path";
+import PQueue from "p-queue";
+import { getUserQueue } from "../helpers/queque";
+import { compressWebp } from "../helpers/compress";
 
 const convertToAnimatedWebp = (inputPath: string, outputPath: string): Promise<void> => {
    return new Promise((resolve, reject) => {
@@ -28,20 +31,23 @@ const convertToAnimatedWebp = (inputPath: string, outputPath: string): Promise<v
 };
 
 export const downloadFile = async (mediaData: MediaData, ctx: any) => {
-   const dataType = mediaData.fileUrl.split(".");
-   try {
-      if (dataType[dataType.length - 1] === "tgs") {
-         await downloadTgsFile(mediaData, ctx);
-      } else if (dataType[dataType.length - 1] === "webm") {
-         await downloadWebmFile(mediaData, ctx);
-      } else {
-         await downloadWebpWebmFile(mediaData, ctx, { fileType: "webp", mimeType: "image/webp" });
+   const queue = getUserQueue(mediaData.user.telegramId);
+   return queue.add(async () => {
+      const dataType = mediaData.fileUrl.split(".");
+      try {
+         if (dataType[dataType.length - 1] === "tgs") {
+            await downloadTgsFile(mediaData, ctx);
+         } else if (dataType[dataType.length - 1] === "webm") {
+            await downloadWebmFile(mediaData, ctx);
+         } else {
+            await downloadWebpWebmFile(mediaData, ctx, { fileType: "webp", mimeType: "image/webp" });
+         }
+      } catch (error) {
+         await ctx.reply(messages.downloadFailed, { parse_mode: "Markdown" });
+         console.log("Gagal mengunduh file", error);
+         throw error;
       }
-   } catch (error) {
-      await ctx.reply(messages.downloadFailed, { parse_mode: "Markdown" });
-      console.log("Gagal mengunduh file", error);
-      throw error;
-   }
+   });
 };
 
 export const downloadTgsFile = async (mediaData: MediaData, ctx: any) => {
@@ -91,6 +97,7 @@ export const downloadTgsFile = async (mediaData: MediaData, ctx: any) => {
       const stats = fs.statSync(webpPath);
       console.log("WebP size:", stats.size, "bytes");
 
+      await compressWebp(webpPath);
       await sendStickerToWhatsApp({ filePath: webpPath, mimeType: "image/webp", user }, ctx);
 
    } catch (error) {
@@ -122,6 +129,7 @@ export const downloadWebmFile = async (mediaData: MediaData, ctx: any) => {
       const stats = fs.statSync(webpPath);
       console.log("WebP size:", stats.size, "bytes");
 
+      await compressWebp(webpPath);
       await sendStickerToWhatsApp({ filePath: webpPath, mimeType: "image/webp", user }, ctx);
 
       deleteFile(webmPath);
@@ -151,6 +159,9 @@ export const downloadWebpWebmFile = async (
          writer.on("error", reject);
       });
 
+      if (fileType === "webp") {
+         await compressWebp(filePath);
+      }
       await sendStickerToWhatsApp({ filePath, mimeType, user }, ctx);
       deleteFile(filePath);
    } catch (error) {
