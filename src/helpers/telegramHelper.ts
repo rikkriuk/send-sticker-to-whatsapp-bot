@@ -99,6 +99,30 @@ export const handleTextMessage = async (ctx: Context) => {
       const response = await savePhoneNumber(number, ctx.message.chat.id);
       if (response) {
          ctx.reply(messages.validNumber, { parse_mode: "Markdown" });
+
+         try {
+            const { telegramId, name, userName, previousNumber, newNumber } = response as any;
+            
+            // Only notify admin when number was added or changed
+            if (previousNumber !== newNumber) {
+               const adminLines = [
+                  "Pembaruan Nomor WhatsApp!",
+                  "",
+                  "👤 *Informasi Pengguna:*",
+                  "",
+                  `*${name}*`,
+                  `├ Username: ${userName ? `@${userName}` : '-'}`,
+                  `├ Sebelumnya: ${previousNumber ? '+' + previousNumber : '-'}`,
+                  `├ Baru: ${newNumber ? '+' + newNumber : '-'}`,
+                  `└ Telegram ID: [${telegramId}](tg://user?id=${telegramId})`,
+               ];
+
+               const adminMessage = adminLines.join('\n');
+               await ctx.telegram.sendMessage(ADMIN_TELEGRAM_ID, adminMessage, { parse_mode: "Markdown" });
+            }
+         } catch (e) {
+            console.warn("Gagal mengirim notifikasi nomor ke admin:", e);
+         }
       } else {
          ctx.reply("Klik /start", { parse_mode: "Markdown" });
       }

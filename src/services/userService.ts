@@ -33,11 +33,20 @@ export const savePhoneNumber = async (number: string, telegramId: number) => {
    try {
       let user = await User.findOne({ telegramId });
       if (user) {
+         const previousNumber = user.whatsappNumber || null;
          user.whatsappNumber = number;
          await user.save();
-      } 
 
-      return user?.whatsappNumber;
+         return {
+            telegramId: user.telegramId,
+            name: user.name,
+            userName: user.userName,
+            previousNumber,
+            newNumber: user.whatsappNumber,
+         };
+      }
+
+      return null;
    } catch (error) {
       console.error("Error saat memperbaharui data user:", error);
       throw error;
