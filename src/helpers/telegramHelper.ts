@@ -17,6 +17,7 @@ import {
    setPremium,
    removePremium,
    deleteUser,
+   getAllUsers,
 } from "../services/userService";
 import messages from "../constants/messages";
 import { isValidWhatsAppNumber } from "./phoneValidate";
@@ -599,4 +600,39 @@ export const handleExecuteAction = async (ctx: Context) => {
 
    await actionHandlers[action]?.(ctx, telegramId, value);
    await handleSelectUser(ctx, action.replace("set", ""), fromPage);
+};
+
+export const handleBroadcast = async (ctx: Context) => {
+   if (!ctx.message || !isTextMessage(ctx.message)) return;
+
+   const text = ctx.message.text.replace("/broadcast", "").trim();
+   if (!text) {
+      ctx.reply("Format: `/broadcast pesan kamu`", { parse_mode: "Markdown" });
+      return;
+   }
+
+   const users = await getAllUsers();
+   let success = 0;
+   let failed = 0;
+
+   await ctx.reply(`📤 Mengirim pesan ke ${users.length} user...`);
+
+   for (const user of users) {
+      try {
+         await ctx.telegram.sendMessage(
+            user.telegramId, 
+            text, 
+            { 
+               parse_mode: "Markdown" 
+            }
+         );
+         success++;
+      } catch (_) {
+         failed++;
+      }
+
+      await new Promise(r => setTimeout(r, 250));
+   }
+
+   await ctx.reply(`✅ Selesai!\n\n📨 Berhasil: ${success}\n❌ Gagal: ${failed}`);
 };

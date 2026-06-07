@@ -3,6 +3,10 @@ import { User } from "../models/User";
 import { UserChat } from "../types/userChat";
 import { IUser } from "../types/userModel.type";
 
+export const getAllUsers = async () => {
+   return await User.find({}, { telegramId: 1 });
+};
+
 export const saveOrUpateUser = async (chat: UserChat) => {
    try {
       const { id, first_name, username, type } = chat;
