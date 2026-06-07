@@ -7,7 +7,6 @@ import messages from "../constants/messages";
 import { MediaData } from "../types/media.type";
 import { execSync } from "child_process";
 import path from "path";
-import PQueue from "p-queue";
 import { getUserQueue } from "../helpers/queque";
 import { compressWebp } from "../helpers/compress";
 
@@ -19,6 +18,8 @@ const convertToAnimatedWebp = (inputPath: string, outputPath: string): Promise<v
             "-vf", "scale=512:512:force_original_aspect_ratio=decrease,fps=15",
             "-loop", "0",
             "-preset", "default",
+            "-compression_level", "6",
+            "-q:v", "50",
             "-an",
             "-vsync", "0",
             "-t", "00:00:06",
@@ -124,6 +125,13 @@ export const downloadWebmFile = async (mediaData: MediaData, ctx: any) => {
          writer.on("finish", resolve);
          writer.on("error", reject);
       });
+
+      const fileSize = fs.statSync(webmPath).size;
+      if (fileSize === 0) {
+         throw new Error("Downloaded WebM file is empty");
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       await convertToAnimatedWebp(webmPath, webpPath);
       const stats = fs.statSync(webpPath);
