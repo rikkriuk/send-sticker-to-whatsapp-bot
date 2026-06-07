@@ -5,9 +5,10 @@ import { sendStickerToWhatsApp } from "../helpers/whatsappHelper";
 import { deleteFile } from "../helpers/fileHelper";
 import messages from "../constants/messages";
 import { MediaData } from "../types/media.type";
-import lottie from "lottie-node";
 import { createCanvas } from "canvas";
 import zlib from "zlib";
+
+const lottie = require("lottie-node");
 
 const convertToAnimatedWebp = (inputPath: string, outputPath: string): Promise<void> => {
    return new Promise((resolve, reject) => {
