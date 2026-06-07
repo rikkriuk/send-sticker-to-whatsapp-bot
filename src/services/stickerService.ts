@@ -80,11 +80,11 @@ export const downloadTgsFile = async (mediaData: MediaData, ctx: any) => {
             .inputFPS(frameRate)
             .outputOptions([
                "-vcodec", "libwebp_anim",
-               "-vf", "scale=512:512:force_original_aspect_ratio=decrease,fps=15",
+               "-vf", "scale=512:512:force_original_aspect_ratio=decrease,fps=12",
                "-loop", "0",
                "-preset", "default",
                "-compression_level", "6",
-               "-q:v", "50",
+               "-q:v", "25",
                "-an",
                "-vsync", "0",
                "-t", "00:00:06",
