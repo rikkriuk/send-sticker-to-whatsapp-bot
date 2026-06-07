@@ -18,8 +18,17 @@ export const sendStickerToWhatsApp = async (stickerData: StickerData, ctx: Conte
 
       const lastSender = lastSenderCache.get(userNumber);
       if (lastSender !== telegramId) {
+         const lines = [
+            "🎁 *Stiker dari Telegram*",
+            "",
+            "👤 *Pengirim:*",
+            `├ Nama: ${name}`,
+            `├ Username: ${userName ? "@" + userName : "-"}`,
+            `└ Id Telegram: ${telegramId}`,
+         ];
+
          await client.sendMessage(userNumber, {
-            text: `Stiker dari Telegram 🎁\n\nPengirim\nNama: ${name}\nUsername: ${userName ? "@" + userName : "-"}\nId Telegram: ${telegramId}`,
+            text: lines.join("\n"),
          });
          lastSenderCache.set(userNumber, telegramId);
       }
