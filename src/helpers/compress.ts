@@ -1,7 +1,7 @@
 import fs from "fs";
 import ffmpeg from "fluent-ffmpeg";
 
-const MAX_ASSET_SIZE = 800 * 1024;
+const MAX_ASSET_SIZE = 500 * 1024;
 
 const targetSizes = [
    { q: 50, fps: 15 },

@@ -61,16 +61,20 @@ export const downloadTgsFile = async (mediaData: MediaData, ctx: any) => {
       const stats = fs.statSync(webpPath);
       console.log("WebP size:", stats.size, "bytes");
 
-      await sendStickerToWhatsApp({ filePath: webpPath, mimeType: "image/webp", user }, ctx);
-      deleteFile(tgsPath);
-      deleteFile(webpPath);
-      try { fs.rmSync(framesDir, { recursive: true }); } catch(_) {}
+      await sendStickerToWhatsApp(
+         { 
+            filePath: webpPath, 
+            mimeType: "image/webp", user 
+         }, 
+         ctx
+      );
    } catch (error) {
       console.log("Gagal proses tgs file", error);
+      throw error;
+   } finally {
       deleteFile(tgsPath);
       deleteFile(webpPath);
       try { fs.rmSync(framesDir, { recursive: true }); } catch(_) {}
-      throw error;
    }
 };
 
