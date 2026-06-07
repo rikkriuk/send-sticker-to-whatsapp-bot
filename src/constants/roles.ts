@@ -23,8 +23,13 @@ export const USER_COMMANDS = [
 export const ADMIN_COMMANDS = [
    ...USER_COMMANDS,
    { 
+      command: "broadcast",
+      description: "📢 Kirim pesan ke semua user" 
+   },
+   { 
       command: "limit", 
-      description: "⚡ Tambah limit user" },
+      description: "⚡ Tambah limit user" 
+   },
    { 
       command: "list",    
       description: "📋 Daftar pengguna" 
