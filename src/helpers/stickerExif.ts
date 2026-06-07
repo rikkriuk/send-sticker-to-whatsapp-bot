@@ -7,13 +7,29 @@ export const addStickerMetadata = async (
    packname: string,
    author: string
 ): Promise<Buffer> => {
+   const qualities = [50, 30, 20, 10];
+   const MAX_SIZE = 800 * 1024;
+
+   for (const quality of qualities) {
+      const sticker = new Sticker(buffer, {
+         pack: packname,
+         author: author,
+         type: StickerTypes.FULL,
+         quality,
+      });
+
+      const result = await sticker.toBuffer();
+      console.log(`Sticker size quality=${quality}: ${result.length} bytes`);
+      
+      if (result.length <= MAX_SIZE) return result;
+   }
+
    const sticker = new Sticker(buffer, {
       pack: packname,
       author: author,
       type: StickerTypes.FULL,
-      quality: 100,
+      quality: 10,
    });
-
    return await sticker.toBuffer();
 };
 

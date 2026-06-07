@@ -1,14 +1,13 @@
 import fs from "fs";
 import ffmpeg from "fluent-ffmpeg";
 
-const MAX_ASSET_SIZE = 500 * 1024;
+const MAX_ASSET_SIZE = 900 * 1024;
 
 const targetSizes = [
    { q: 50, fps: 15 },
    { q: 30, fps: 12 },
    { q: 20, fps: 10 },
    { q: 10, fps: 8 },
-   { q: 5, fps: 8 },
 ];
 
 const convertToWebp = async (input: string, frameRate: number, output: string): Promise<void> => {
