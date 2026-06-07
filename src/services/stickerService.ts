@@ -5,7 +5,9 @@ import { sendStickerToWhatsApp } from "../helpers/whatsappHelper";
 import { deleteFile } from "../helpers/fileHelper";
 import messages from "../constants/messages";
 import { MediaData } from "../types/media.type";
-const tgs2 = require("tgs2");
+import lottie from "lottie-node";
+import { createCanvas } from "canvas";
+import zlib from "zlib";
 
 const convertToAnimatedWebp = (inputPath: string, outputPath: string): Promise<void> => {
    return new Promise((resolve, reject) => {
@@ -44,29 +46,75 @@ export const downloadFile = async (mediaData: MediaData, ctx: any) => {
 };
 
 export const downloadTgsFile = async (mediaData: MediaData, ctx: any) => {
-   const { user, fileUrl, downloadPath } = mediaData;
-   const fileName = fileUrl.split("/").pop()?.split(".")[0];
+   const { user, fileUrl, fileName, downloadPath } = mediaData;
+   const tgsPath = `${downloadPath}/${fileName}.tgs`;
+   const webpPath = `${downloadPath}/${fileName}.webp`;
 
    try {
-      await tgs2.url2Gif(fileUrl, {
-         lottie_config: { format: "mp4" },
-         exportPath: downloadPath,
+      const writer = fs.createWriteStream(tgsPath);
+      const response = await axios({ url: fileUrl, method: "GET", responseType: "stream" });
+      response.data.pipe(writer);
+      await new Promise<void>((resolve, reject) => {
+         writer.on("finish", resolve);
+         writer.on("error", reject);
       });
 
-      const mp4Path = `${downloadPath}/${fileName}.mp4`;
-      const webpPath = `${downloadPath}/${fileName}.webp`;
+      const tgsBuffer = fs.readFileSync(tgsPath);
+      const lottieJson = JSON.parse(
+         zlib.gunzipSync(tgsBuffer).toString("utf-8")
+      );
 
-      await convertToAnimatedWebp(mp4Path, webpPath);
-   const stats = fs.statSync(webpPath);
-console.log("WebP size:", stats.size, "bytes");
+      const width = 512, height = 512;
+      const canvas = createCanvas(width, height);
+      const anim = lottie.loadAnimation({
+         animationData: lottieJson,
+         renderer: "canvas",
+         rendererSettings: { context: canvas.getContext("2d") },
+      });
+
+      const totalFrames = anim.totalFrames;
+      const framePaths: string[] = [];
+
+      for (let i = 0; i < totalFrames; i++) {
+         anim.goToAndStop(i, true);
+         const framePath = `${downloadPath}/${fileName}_frame_${String(i).padStart(4, "0")}.png`;
+         const buffer = (canvas as any).toBuffer("image/png");
+         fs.writeFileSync(framePath, buffer);
+         framePaths.push(framePath);
+      }
+
+      await new Promise<void>((resolve, reject) => {
+         ffmpeg()
+            .input(`${downloadPath}/${fileName}_frame_%04d.png`)
+            .inputFPS(lottieJson.fr ?? 30)
+            .outputOptions([
+               "-vcodec", "libwebp_anim",
+               "-vf", "scale=512:512:force_original_aspect_ratio=decrease",
+               "-loop", "0",
+               "-preset", "default",
+               "-an",
+               "-vsync", "0",
+               "-t", "00:00:06",
+            ])
+            .output(webpPath)
+            .on("end", () => resolve())
+            .on("error", reject)
+            .run();
+      });
+
+      const stats = fs.statSync(webpPath);
+      console.log("WebP size:", stats.size, "bytes");
 
       await sendStickerToWhatsApp({ filePath: webpPath, mimeType: "image/webp", user }, ctx);
 
-      deleteFile(mp4Path);
-      deleteFile(webpPath);
    } catch (error) {
       console.log("Gagal proses tgs file", error);
       throw error;
+   } finally {
+      deleteFile(tgsPath);
+      deleteFile(webpPath);
+      const frames = fs.readdirSync(downloadPath).filter(f => f.startsWith(`${fileName}_frame_`));
+      frames.forEach(f => deleteFile(`${downloadPath}/${f}`));
    }
 };
 
@@ -86,8 +134,8 @@ export const downloadWebmFile = async (mediaData: MediaData, ctx: any) => {
       });
 
       await convertToAnimatedWebp(webmPath, webpPath);
-   const stats = fs.statSync(webpPath);
-console.log("WebP size:", stats.size, "bytes");
+      const stats = fs.statSync(webpPath);
+      console.log("WebP size:", stats.size, "bytes");
 
       await sendStickerToWhatsApp({ filePath: webpPath, mimeType: "image/webp", user }, ctx);
 
