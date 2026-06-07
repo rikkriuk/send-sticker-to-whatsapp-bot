@@ -11,7 +11,17 @@ const targetSizes = [
 ];
 
 const convertToWebp = async (input: string, frameRate: number, output: string): Promise<void> => {
-   for (const { q, fps } of targetSizes) {
+   let startIndex = 0;
+
+   if (!input.includes('%')) {
+      const inputSize = fs.statSync(input).size;
+      if (inputSize > 5 * 1024 * 1024) startIndex = 2;
+      else if (inputSize > 2 * 1024 * 1024) startIndex = 1;
+   }
+
+   const sizes = targetSizes.slice(startIndex);
+
+   for (const { q, fps } of sizes) {
       const options = [
          "-vcodec", "libwebp_anim",
          "-vf", `scale=512:512:force_original_aspect_ratio=decrease,fps=${fps}`,
