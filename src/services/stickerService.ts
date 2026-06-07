@@ -131,8 +131,6 @@ export const downloadWebmFile = async (mediaData: MediaData, ctx: any) => {
          throw new Error("Downloaded WebM file is empty");
       }
 
-      await new Promise(resolve => setTimeout(resolve, 500));
-
       await convertToAnimatedWebp(webmPath, webpPath);
       const stats = fs.statSync(webpPath);
       console.log("WebP size:", stats.size, "bytes");

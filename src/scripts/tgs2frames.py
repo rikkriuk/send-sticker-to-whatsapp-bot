@@ -12,10 +12,15 @@ with gzip.open(tgs_path, 'rb') as f:
     data = json.loads(f.read())
 
 anim = lottie.objects.Animation.load(data)
+original_fps = anim.frame_rate
+target_fps = 24
 total_frames = int(anim.out_point - anim.in_point)
 
-for i in range(total_frames):
-    frame_path = os.path.join(output_dir, f"frame_{i:04d}.png")
-    export_png(anim, frame_path, frame=i, dpi=96)
+step = original_fps / target_fps
+frames_to_render = [int(i * step) for i in range(int(total_frames / step))]
 
-print(f"OK:{total_frames}:{anim.frame_rate}")
+for idx, frame_num in enumerate(frames_to_render):
+    frame_path = os.path.join(output_dir, f"frame_{idx:04d}.png")
+    export_png(anim, frame_path, frame=frame_num, dpi=72)
+
+print(f"OK:{len(frames_to_render)}:{target_fps}")
