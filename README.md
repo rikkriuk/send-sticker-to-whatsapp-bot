@@ -1,6 +1,12 @@
 # Send Sticker to WhatsApp Bot
 
-Bot ini digunakan untuk mengirim stiker ke WhatsApp menggunakan whatsapp-web.js.
+Bot untuk mengirim stiker Telegram ke WhatsApp secara otomatis.
+
+## 📋 Requirements
+
+- Node.js >= 18
+- Python3 & pip3
+- ffmpeg
 
 ## 🚀 Cara Menjalankan di Lokal
 
@@ -11,42 +17,65 @@ git clone https://github.com/rikkriuk/send-sticker-to-whatsapp-bot.git
 cd send-sticker-to-whatsapp-bot
 ```
 
-### 2. Download `ffmpeg` di Root Directory
+### 2. Install ffmpeg
 
-Bot ini memerlukan `ffmpeg` untuk konversi media (jika diperlukan untuk fitur tambahan). Pastikan Anda telah mengunduh dan meletakkannya di direktori proyek.
-
-#### Install `ffmpeg` (Linux/MacOS)
-
+#### Linux/Ubuntu
 ```sh
-sudo apt update && sudo apt install ffmpeg -y  # Debian/Ubuntu
-brew install ffmpeg  # macOS (Homebrew)
+sudo apt update && sudo apt install ffmpeg -y
 ```
 
-#### Install `ffmpeg` (Windows)
+#### macOS
+```sh
+brew install ffmpeg
+```
 
-1. Unduh `ffmpeg` dari [situs resmi](https://ffmpeg.org/download.html).
-2. Ekstrak dan tambahkan path `bin` ke Environment Variables.
+#### Windows
+1. Download dari [ffmpeg.org](https://ffmpeg.org/download.html)
+2. Ekstrak dan tambahkan folder `bin` ke Environment Variables
 
 ### 3. Install Dependencies
 
+#### Linux/macOS
 ```sh
-npm install
+chmod +x install.sh && ./install.sh
 ```
 
-### 4. Jalankan Bot
+#### Windows
+```bat
+install.bat
+```
 
-#### Untuk Pengembangan (Lokal)
+Script ini akan otomatis menginstall:
+- Node.js dependencies (`npm install`)
+- Python dependencies (`lottie`, `cairosvg`, `Pillow`, `rembg`)
+- Build project (`npm run build`)
 
+### 4. Setup Environment
+
+```sh
+cp .env.example .env
+```
+
+Isi file `.env` dengan konfigurasi yang diperlukan.
+
+### 5. Jalankan Bot
+
+#### Development
 ```sh
 npm run dev
 ```
 
-#### Untuk Production
-
+#### Production
 ```sh
 npm run start:build
 ```
 
-Bot akan mulai berjalan, dan Anda perlu memindai kode QR yang muncul di terminal dengan WhatsApp Web untuk menghubungkan bot ke akun WhatsApp Anda.
+Scan QR code yang muncul di terminal dengan WhatsApp untuk menghubungkan bot.
 
 ---
+
+## ⚠️ Notes
+
+- Pertama kali menjalankan, `rembg` akan mendownload model AI (~100MB)
+- Stiker animasi (TGS) dikonversi via Python secara lokal tanpa API eksternal
+- Pastikan koneksi WhatsApp stabil sebelum mengirim banyak stiker
