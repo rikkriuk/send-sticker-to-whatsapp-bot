@@ -8,7 +8,7 @@ export const addStickerMetadata = async (
    author: string
 ): Promise<Buffer> => {
    const qualities = [50, 30, 20, 10];
-   const MAX_SIZE = 800 * 1024;
+   const MAX_SIZE = 900 * 1024;
 
    for (const quality of qualities) {
       const sticker = new Sticker(buffer, {
