@@ -79,6 +79,7 @@ export const handleStart = async (ctx: Context) => {
    } else {
       await ctx.reply(messages.existedNumber, { parse_mode: "Markdown" });
    }
+   await ctx.reply(messages.notes, { parse_mode: "Markdown" });
 };
 
 export const handleTextMessage = async (ctx: Context) => {

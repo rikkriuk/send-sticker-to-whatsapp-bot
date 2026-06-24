@@ -30,7 +30,16 @@ const messages = {
   "2. Setelah itu, masukkan nomor WhatsApp yang valid, contoh formatnya seperti ini: 081234567890\n" +
   "3. Setelah nomor terverifikasi, kirimkan stiker untuk melanjutkan proses.\n\n_" +
   "_Catatan: Setiap pengguna memiliki batas untuk mengirimkan stiker per-hari, kamu bisa melihat informasinya di /profile.\n\n_" +
-  `_Jika ada masalah atau pertanyaan, kamu bisa ketik /help atau chat @${ADMIN_TELEGRAM_USERNAME} untuk bantuan lebih lanjut._`
+  `_Jika ada masalah atau pertanyaan, kamu bisa ketik /help atau chat @${ADMIN_TELEGRAM_USERNAME} untuk bantuan lebih lanjut._`,
+  notes:
+    `_📝 *Catatan Penting:*\n\n` +
+    `Kalau kamu ragu memberikan nomor utama, kamu bisa pakai nomor WhatsApp kedua (second).\n\n` +
+    `🔒 *Keamanan & Privasi:*\n` +
+    `• Bot ini tidak menyimpan isi pesan atau stiker kamu\n` +
+    `• Nomor WhatsApp kamu hanya digunakan sebagai tujuan pengiriman stiker\n` +
+    `• Data kamu tidak akan dibagikan ke pihak manapun\n` +
+    `• Kamu bisa menghapus data kapan saja melalui /profile\n\n` +
+    `Jika masih ada pertanyaan, hubungi @${ADMIN_TELEGRAM_USERNAME}_`,
 } as const;
  
 export default messages;
