@@ -8,13 +8,14 @@ const messages = {
   failed: "_Stiker gagal dikirim!_",
   downloadFailed: "_Gagal mengunduh file_",
   about:
-    `_Bot ini dirancang untuk memungkinkan pengguna mengirim stiker dari Telegram ke WhatsApp dengan mudah. \n\n/start - Mulai bot \n/help - Tentang bot \n/guide - Panduan bot\n/profile - informasi pengguna \n \n\nDeveloper: @${ADMIN_TELEGRAM_USERNAME}_`,
+    `_@SendStickerBot merupakan bot yang bisa mengirimkan sticker Telegram ke WhatsApp dengan secara otomatis. \n\n/start - Mulai bot \n/help - Tentang bot \n/guide - Panduan bot\n/profile - informasi pengguna \n \n\nDeveloper: @${ADMIN_TELEGRAM_USERNAME}_`,
   whatsAppInfo: `_Bot belum menemukan nomor WhatsApp kamu, silahkan tulis nomor WhatsApp! \n\nNomor yang kamu masukan akan menjadi tempat penerima stiker yang masuk lewat pesan.  \n\nContoh: 085722710523
   _`,
   invalidNumber:
     "_Nomor tidak valid, silahkan masukkan nomor yang benar! \n\nContoh: 085722710523_",
   validNumber: "_Nomor tersimpan📝 \nSilahkan kirim stiker!_",
   inValidNumber: "_Nomor WhatsApp tidak valid._",
+  sendSticker: "_Silahkan kirim stiker kamu!_",
   existedNumber: "_Silahkan kirim stiker!\n\nJika ingin memperbaharui nomor WhatsApp, cukup ketika nomornya. contoh formatnya seperti ini: 081234567890_",
   inValidTextFormat: "_Harap kirimkan pesan dalam format teks._",
   chatNotFound: "_Chat tidak tersedia._",

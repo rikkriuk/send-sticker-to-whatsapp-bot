@@ -74,12 +74,13 @@ export const handleStart = async (ctx: Context) => {
    }
    
    await ctx.reply(messages.about, { parse_mode: "Markdown" });
-   if (!user.whatsappNumber) {
-      await ctx.reply(messages.whatsAppInfo, { parse_mode: "Markdown" });
-   } else {
-      await ctx.reply(messages.existedNumber, { parse_mode: "Markdown" });
-   }
-   await ctx.reply(messages.notes, { parse_mode: "Markdown" });
+   // if (!user.whatsappNumber) {
+   //    await ctx.reply(messages.whatsAppInfo, { parse_mode: "Markdown" });
+   // } else {
+   //    await ctx.reply(messages.existedNumber, { parse_mode: "Markdown" });
+   // }
+   // await ctx.reply(messages.notes, { parse_mode: "Markdown" });
+   await ctx.reply(messages.sendSticker, { parse_mode: "Markdown" });
 };
 
 export const handleTextMessage = async (ctx: Context) => {
