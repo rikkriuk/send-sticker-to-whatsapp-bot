@@ -12,6 +12,7 @@ export interface IUser extends Document {
   isProcessing: boolean;
   role: UserRole;
   isPremium: boolean;
+  stickerLimitResetAt?: Date;
   premiumExpiredAt: Date | null;
   isBlocked: boolean;
   createdAt?: Date;

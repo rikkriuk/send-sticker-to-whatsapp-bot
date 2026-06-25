@@ -38,6 +38,10 @@ const UserSchema: Schema = new Schema(
       type: Boolean, 
       default: false 
     },
+    stickerLimitResetAt: {
+      type: Date,
+      default: null,
+    },
     premiumExpiredAt: { 
       type: Date, 
       default: null 

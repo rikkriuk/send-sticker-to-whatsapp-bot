@@ -161,7 +161,7 @@ export const handleStickerMessage = async (ctx: Context) => {
 
    const isPremium = await checkAndResetPremium(user);
 
-   const replyStickerLimit = (ctx: Context) => ctx.reply(messages.stickerLimit(getTimeUntilReset(user.updatedAt)), {
+   const replyStickerLimit = (ctx: Context) => ctx.reply(messages.stickerLimit(getTimeUntilReset(user.stickerLimitResetAt ?? user.createdAt)), {
       parse_mode: "Markdown",
       reply_markup: {
          inline_keyboard: [[

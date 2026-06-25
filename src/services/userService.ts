@@ -70,15 +70,18 @@ export const getUser = async (telegramId: number | undefined) => {
 
 export const resetStickerLimitIfNeeded = async (user: any) => {
    const now = Date.now();
-   const lastUpdated = new Date(user.updatedAt).getTime();
+   const lastReset = user.stickerLimitResetAt 
+      ? new Date(user.stickerLimitResetAt).getTime()
+      : new Date(user.createdAt).getTime();
    const oneDay = 24 * 60 * 60 * 1000;
 
-   if (now - lastUpdated >= oneDay) {
+   if (now - lastReset >= oneDay) {
       await User.findByIdAndUpdate(user._id, { 
          stickerLimit: 10, 
-         updatedAt: new Date(),
+         stickerLimitResetAt: new Date(),
       });
       user.stickerLimit = 10;
+      user.stickerLimitResetAt = new Date();
    }
 };
 
@@ -97,12 +100,12 @@ export const resetUserProcessing = async (userId: mongoose.Types.ObjectId) => {
 export const decrementStickerLimit = async (userId: mongoose.Types.ObjectId, role: string) => {
    if (role === "admin") {
       await User.findByIdAndUpdate(userId, {
-         $set: { updatedAt: new Date(), isProcessing: false }
+         $set: { isProcessing: false }
       });
    } else {
       await User.findByIdAndUpdate(userId, {
          $inc: { stickerLimit: -1 },
-         $set: { updatedAt: new Date(), isProcessing: false }
+         $set: { isProcessing: false }
       });
    }
 };
