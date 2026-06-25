@@ -20,7 +20,7 @@ const messages = {
   inValidTextFormat: "_Harap kirimkan pesan dalam format teks._",
   chatNotFound: "_Chat tidak tersedia._",
   help: "_Halo! Ada yang bisa saya bantu?_",
-  stickerLimit: "_Pengiriman stiker hari ini mencapai batas, kembali lagi besok!_",
+  stickerLimit: (resetTime: string) => `_Pengiriman stiker hari ini mencapai batas! ⏰\n\nCoba lagi dalam: *${resetTime}*_`,
   userNotFound: "_User tidak ditemukan_",
   updateLimit: "_Limit berhasil ditambah (10+)_",
   invalidUpdateLimitFormat: "_Masukan format yang benar \nContoh: /limit ID-NUMBER_",

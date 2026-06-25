@@ -28,6 +28,7 @@ import { formattedDate } from "./formattedDate";
 import whatsappEmitter from "../events/eventEmitter";
 import { setCommandsForUser } from "../middleware/adminMiddleware";
 import { ADMIN_TELEGRAM_ID, ADMIN_TELEGRAM_USERNAME, ROLES } from "../constants/roles";
+import { getTimeUntilReset } from "./time";
 
 let isClientReady: boolean = false;
 
@@ -160,7 +161,7 @@ export const handleStickerMessage = async (ctx: Context) => {
 
    const isPremium = await checkAndResetPremium(user);
 
-   const replyStickerLimit = (ctx: Context) => ctx.reply(messages.stickerLimit, {
+   const replyStickerLimit = (ctx: Context) => ctx.reply(messages.stickerLimit(getTimeUntilReset(user.updatedAt)), {
       parse_mode: "Markdown",
       reply_markup: {
          inline_keyboard: [[
