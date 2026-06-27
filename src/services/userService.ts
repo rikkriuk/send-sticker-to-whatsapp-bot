@@ -7,9 +7,9 @@ export const getAllUsers = async () => {
    return await User.find({}, { telegramId: 1 });
 };
 
-export const saveOrUpateUser = async (chat: UserChat) => {
+export const saveOrUpateUser = async (chat: UserChat, referredBy?: number) => {
    try {
-      const { id, first_name, username, type } = chat;
+      const { id, first_name, username } = chat;
       let user = await User.findOne({ telegramId: id });
       let isNewUser = false;
 
@@ -19,7 +19,14 @@ export const saveOrUpateUser = async (chat: UserChat) => {
             telegramId: id,
             name: first_name,
             userName: username || "",
-         })
+         });
+
+         if (referredBy && referredBy !== id) {
+            await User.findOneAndUpdate(
+               { telegramId: referredBy },
+               { $inc: { stickerLimit: 15 } }
+            );
+         }
       } else {
          user.name = first_name;
          user.userName = username || "";
@@ -31,7 +38,7 @@ export const saveOrUpateUser = async (chat: UserChat) => {
       console.error("Error saat memperbaharui data user:", error);
       throw error;
    }
-}
+};
 
 export const savePhoneNumber = async (number: string, telegramId: number) => {
    try {
@@ -97,14 +104,14 @@ export const resetUserProcessing = async (userId: mongoose.Types.ObjectId) => {
    await User.findByIdAndUpdate(userId, { isProcessing: false });
 };
 
-export const decrementStickerLimit = async (userId: mongoose.Types.ObjectId, role: string) => {
+export const decrementStickerLimit = async (userId: mongoose.Types.ObjectId, role: string, amount: number = 1) => {
    if (role === "admin") {
       await User.findByIdAndUpdate(userId, {
          $set: { isProcessing: false }
       });
    } else {
       await User.findByIdAndUpdate(userId, {
-         $inc: { stickerLimit: -1 },
+         $inc: { stickerLimit: -amount },
          $set: { isProcessing: false }
       });
    }

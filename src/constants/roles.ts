@@ -18,17 +18,21 @@ export const USER_COMMANDS = [
       command: "help",    
       description: "❓ Bantuan" 
    },
+   { 
+      command: "invite",    
+      description: "🎁 Dapatkan 15+ limit gratis" 
+   },
 ];
 
 export const ADMIN_COMMANDS = [
    ...USER_COMMANDS,
    { 
       command: "broadcast",
-      description: "📢 Kirim pesan ke semua user" 
+      description: "📢 Kirim pesan ke semua pengguna" 
    },
    { 
       command: "limit", 
-      description: "⚡ Tambah limit user" 
+      description: "⚡ Tambah limit pengguna" 
    },
    { 
       command: "list",    
@@ -36,15 +40,15 @@ export const ADMIN_COMMANDS = [
    },
    { 
       command: "premium", 
-      description: "⭐ Set premium user" 
+      description: "⭐ Set premium pengguna" 
    },
    { 
       command: "delete",  
-      description: "🗑️ Hapus user" 
+      description: "🗑️ Hapus pengguna" 
    },
    { 
       command: "block",
-      description: "🚫 Blokir/Unblokir user" 
+      description: "🚫 Blokir/Unblokir pengguna" 
    },
 ];
 

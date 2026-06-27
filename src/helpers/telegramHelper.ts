@@ -47,7 +47,23 @@ export const handleStart = async (ctx: Context) => {
    }
    
    await ctx.reply(`_${messages.hi + ctx.chat.first_name}_`, { parse_mode: "Markdown" });
-   const { user, isNewUser } = await saveOrUpateUser(ctx?.chat);
+
+   const startPayload = (ctx as any).startPayload as string | undefined;
+   const referredBy = startPayload?.startsWith("ref_")
+      ? parseInt(startPayload.replace("ref_", ""))
+      : undefined;
+
+   const { user, isNewUser } = await saveOrUpateUser(ctx.chat, referredBy);
+
+   if (isNewUser && referredBy) {
+      try {
+         await ctx.telegram.sendMessage(
+            referredBy,
+            `🎉 *Teman kamu berhasil join!*\n\n👤 ${ctx.chat.first_name} menggunakan link invite kamu.\n✅ Limit sticker kamu bertambah *+15*!`,
+            { parse_mode: "Markdown" }
+         );
+      } catch (_) {}
+   }
 
    await setCommandsForUser(ctx.chat.id, user.role);
 
@@ -140,8 +156,12 @@ export const hears = (ctx: Context) => {
 };
 
 export const handleStickerMessage = async (ctx: Context) => {
-   const message = ctx.message as { sticker: { file_id: string } };
+   const message = ctx.message as { sticker: { file_id: string; is_animated: boolean; is_video: boolean } };
    const fileId = message?.sticker?.file_id;
+   const isAnimated = message?.sticker?.is_animated;
+   const isVideo = message?.sticker?.is_video; 
+
+   const limitCost = isAnimated ? 3 : 1;
 
    if (!isClientReady) {
       ctx.reply(messages.isWhatsappReady, { parse_mode: "Markdown" });
@@ -161,18 +181,24 @@ export const handleStickerMessage = async (ctx: Context) => {
 
    const isPremium = await checkAndResetPremium(user);
 
-   const replyStickerLimit = (ctx: Context) => ctx.reply(messages.stickerLimit(getTimeUntilReset(user.stickerLimitResetAt ?? user.createdAt)), {
-      parse_mode: "Markdown",
-      reply_markup: {
-         inline_keyboard: [[
-            { text: "⭐ Upgrade Premium", url: `https://t.me/${ADMIN_TELEGRAM_USERNAME}` }
-         ]]
-      }
-   });
+   const replyStickerLimit = (ctx: Context) => {
+      return ctx.reply(
+         messages.stickerLimit(getTimeUntilReset(user.stickerLimitResetAt ?? user.createdAt)),
+         {
+            parse_mode: "Markdown",
+            reply_markup: {
+               inline_keyboard: [
+                  [{ text: "⭐ Upgrade Premium (unlimited) - 5K", url: `https://t.me/${ADMIN_TELEGRAM_USERNAME}` }],
+                  [{ text: "👥 Undang Teman (+15 limit)", callback_data: "get_invite_link" }],
+               ]
+            }
+         }
+      );
+   };
 
    if (!isPremium) {
       await resetStickerLimitIfNeeded(user);
-      if (user.stickerLimit <= 0) {
+      if (user.stickerLimit < limitCost) {
          await replyStickerLimit(ctx);
          return;
       }
@@ -195,13 +221,13 @@ export const handleStickerMessage = async (ctx: Context) => {
 
    ctx.reply(messages.process, { parse_mode: "Markdown" });
 
-   processSticker(ctx, user, fileId, isPremium).catch(async (error) => {
+   processSticker(ctx, user, fileId, isPremium, limitCost).catch(async (error) => {
       console.error("Error processing sticker:", error);
       if (!isAdmin) await resetUserProcessing(user._id);
    });
 };
 
-const processSticker = async (ctx: Context, user: any, fileId: string, isPremium: boolean) => {
+const processSticker = async (ctx: Context, user: any, fileId: string, isPremium: boolean, limitCost: number = 1) => {
    try {
       const downloadPath = "/tmp";
       if (!fs.existsSync(downloadPath)) {
@@ -217,7 +243,7 @@ const processSticker = async (ctx: Context, user: any, fileId: string, isPremium
 
       await downloadFile(mediaData, ctx);
       if (!isPremium) {
-         await decrementStickerLimit(user._id, user.role);
+         await decrementStickerLimit(user._id, user.role, limitCost);
       }
    } catch (error) {
       ctx.reply(messages.failed, { parse_mode: "Markdown" });
@@ -638,4 +664,14 @@ export const handleBroadcast = async (ctx: Context) => {
    }
 
    await ctx.reply(`✅ Selesai!\n\n📨 Berhasil: ${success}\n❌ Gagal: ${failed}`);
+};
+
+export const handleInvite = async (ctx: Context) => {
+   const botUsername = process.env.BOT_USERNAME;
+   const telegramId = ctx.chat?.id;
+   const inviteLink = `https://t.me/${botUsername}?start=ref_${telegramId}`;
+
+   await ctx.reply(`🔗 *Link Undangan Kamu:*`, { parse_mode: "Markdown" });
+   await ctx.reply(inviteLink);
+   await ctx.reply(`📢 Salin dan bagikan link di atas ke teman kamu!\nSetiap teman yang join, kamu dapat *+15 limit sticker* otomatis.`, { parse_mode: "Markdown" });
 };
