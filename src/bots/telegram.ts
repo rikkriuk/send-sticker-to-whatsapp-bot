@@ -36,7 +36,7 @@ bot.command("block", adminOnly, (ctx) => handleBlockCommand(ctx));
 bot.command("list",  adminOnly, (ctx) => handleListUser(ctx));
 bot.command("delete", adminOnly, (ctx) => handleDeleteCommand(ctx));
    
-bot.action(/^list_\d+$/, adminOnly, (ctx) => handleListUser(ctx));
+bot.action(/^list_\d+_(asc|desc)$/, adminOnly, (ctx) => handleListUser(ctx));
 bot.action(/^(limit|premium|block|delete)_(user|page)_/, adminOnly, (ctx) => handleUserAction(ctx));
 bot.action(/^(setlimit|setpremium|setblock|setdelete)_/, adminOnly, (ctx) => handleExecuteAction(ctx));
 bot.action("get_invite_link", (ctx) => handleInvite(ctx));

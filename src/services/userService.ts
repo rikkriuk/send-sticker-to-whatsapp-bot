@@ -129,17 +129,20 @@ export const updateLimit = async (telegramId: number | undefined, amount?: numbe
    }
 }
 
-export const getUsersWithPagination = async (page: number, limit: number) => {
+export const getUsersWithPagination = async (page: number, limit: number, sort: "asc" | "desc" = "desc") => {
    const skip = (page - 1) * limit;
-   const users = await User.find()
-     .skip(skip)
-     .limit(limit);
- 
-   return users;
+   return await User.find()
+      .sort({ createdAt: sort === "desc" ? -1 : 1 })
+      .skip(skip)
+      .limit(limit);
+};
+
+export const getTotalUsers = async () => {
+   return await User.countDocuments();
 };
 
 export const getTotalPages = async (limit: number) => {
-   const count = await User.countDocuments();
+   const count = await getTotalUsers();
    return Math.ceil(count / limit);
 };
 

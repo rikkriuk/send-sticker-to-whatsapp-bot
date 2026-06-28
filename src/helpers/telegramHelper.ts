@@ -4,6 +4,7 @@ import {
    checkAndResetPremium,
    decrementStickerLimit,
    getTotalPages,
+   getTotalUsers,
    getUser,
    getUsersWithPagination,
    resetStickerLimitIfNeeded,
@@ -313,21 +314,30 @@ export const handleAddLimit = async (ctx: Context) => {
 }
 
 export const handleListUser = async (ctx: Context) => {
-   const page = ctx.callbackQuery
-      ? parseInt((ctx.callbackQuery as any).data.split("_")[1])
-      : 1;
+   const cbData = ctx.callbackQuery ? (ctx.callbackQuery as any).data as string : null;
+   const parts = cbData?.split("_") ?? [];
+
+   const page = cbData ? parseInt(parts[1]) : 1;
+   const sort = (parts[2] === "asc" ? "asc" : "desc") as "asc" | "desc";
 
    const limit = 10;
-   const users = await getUsersWithPagination(page, limit);
-   const totalPages = await getTotalPages(limit);
+   const [users, totalPages, totalUsers] = await Promise.all([
+      getUsersWithPagination(page, limit, sort),
+      getTotalPages(limit),
+      getTotalUsers(),
+   ]);
 
    if (users.length === 0) {
       ctx.reply(messages.userNotFound, { parse_mode: "Markdown" });
       return;
    }
 
-   let message = `*Daftar Pengguna (Halaman ${page} dari ${totalPages}):*\n\n`;
-  
+   const sortLabel = sort === "desc" ? "Terbaru ↓" : "Terlama ↑";
+   const toggleSort = sort === "desc" ? "asc" : "desc";
+   const toggleLabel = sort === "desc" ? "Urutkan: Terlama ↑" : "Urutkan: Terbaru ↓";
+
+   let message = `*Daftar ${totalUsers} Pengguna (Halaman ${page} dari ${totalPages}) — ${sortLabel}:*\n\n`;
+
    users.forEach((user, index) => {
       const no = (page - 1) * limit + index + 1;
       const whatsapp = user.whatsappNumber ? `+${user.whatsappNumber}` : "-";
@@ -338,32 +348,27 @@ export const handleListUser = async (ctx: Context) => {
       message += `├ Username: ${username}\n`;
       message += `├ WhatsApp: \`${whatsapp}\`\n`;
       message += `├ Limit: ${user.stickerLimit}\n`;
-      message += `└ Telegram ID: [${user.telegramId}](tg://user?id=${user.telegramId})\n\n`
+      message += `└ Telegram ID: [${user.telegramId}](tg://user?id=${user.telegramId})\n\n`;
    });
 
-   const buttons = [];
-   if (page > 1) {
-      buttons.push({ text: "⬅️ Sebelumnya", callback_data: `list_${page - 1}` });
-   }
-   if (page < totalPages) {
-      buttons.push({ text: "Berikutnya ➡️", callback_data: `list_${page + 1}` });
-   }
+   const navButtons = [];
+   if (page > 1) navButtons.push({ text: "⬅️ Sebelumnya", callback_data: `list_${page - 1}_${sort}` });
+   if (page < totalPages) navButtons.push({ text: "Berikutnya ➡️", callback_data: `list_${page + 1}_${sort}` });
 
-   const keyboard = buttons.length > 0
-      ? { reply_markup: { inline_keyboard: [buttons] } }
-      : {};
+   const keyboard = {
+      reply_markup: {
+         inline_keyboard: [
+            [{ text: `📅 ${toggleLabel}`, callback_data: `list_1_${toggleSort}` }],
+            ...(navButtons.length > 0 ? [navButtons] : []),
+         ],
+      },
+   };
 
    if (ctx.callbackQuery) {
-      await ctx.editMessageText(message, {
-         parse_mode: "Markdown",
-         ...keyboard,
-      });
+      await ctx.editMessageText(message, { parse_mode: "Markdown", ...keyboard });
       await ctx.answerCbQuery();
    } else {
-      ctx.reply(message, {
-         parse_mode: "Markdown",
-         ...keyboard,
-      });
+      ctx.reply(message, { parse_mode: "Markdown", ...keyboard });
    }
 };
 
