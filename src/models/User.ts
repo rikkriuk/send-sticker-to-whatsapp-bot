@@ -46,9 +46,13 @@ const UserSchema: Schema = new Schema(
       type: Date, 
       default: null 
     },
-    isBlocked: { 
-      type: Boolean, 
-      default: false 
+    isBlocked: {
+      type: Boolean,
+      default: false
+    },
+    referralCount: {
+      type: Number,
+      default: 0,
     },
   },
   { timestamps: true }

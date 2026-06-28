@@ -7,12 +7,43 @@ import { MediaData } from "../types/media.type";
 import { execSync } from "child_process";
 import path from "path";
 import { getUserQueue } from "../helpers/queque";
-import { convertToWebp  } from "../helpers/compress";
+import { convertToWebp } from "../helpers/compress";
+
+const CACHE_DIR = "/tmp/sticker_cache";
+const CACHE_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 hari
+
+fs.mkdirSync(CACHE_DIR, { recursive: true });
+
+const pruneCache = () => {
+   const now = Date.now();
+   try {
+      for (const file of fs.readdirSync(CACHE_DIR)) {
+         const filePath = `${CACHE_DIR}/${file}`;
+         const mtime = fs.statSync(filePath).mtimeMs;
+         if (now - mtime > CACHE_MAX_AGE) fs.unlinkSync(filePath);
+      }
+   } catch (_) {}
+};
+pruneCache();
+
+const getCachePath = (fileUniqueId: string) => `${CACHE_DIR}/${fileUniqueId}.webp`;
 
 export const downloadFile = async (mediaData: MediaData, ctx: any) => {
    const queue = getUserQueue(mediaData.user.telegramId);
    return queue.add(async () => {
+      const { fileUniqueId, user } = mediaData;
       const dataType = mediaData.fileUrl.split(".");
+
+      // Cache hit: skip FFmpeg
+      if (fileUniqueId) {
+         const cachePath = getCachePath(fileUniqueId);
+         if (fs.existsSync(cachePath)) {
+            console.log(`Cache hit stiker: ${fileUniqueId}`);
+            await sendStickerToWhatsApp({ filePath: cachePath, mimeType: "image/webp", user }, ctx);
+            return;
+         }
+      }
+
       try {
          if (dataType[dataType.length - 1] === "tgs") {
             await downloadTgsFile(mediaData, ctx);
@@ -30,7 +61,7 @@ export const downloadFile = async (mediaData: MediaData, ctx: any) => {
 };
 
 export const downloadTgsFile = async (mediaData: MediaData, ctx: any) => {
-   const { user, fileUrl, fileName, downloadPath } = mediaData;
+   const { user, fileUrl, fileName, downloadPath, fileUniqueId } = mediaData;
    const tgsPath = `${downloadPath}/${fileName}.tgs`;
    const webpPath = `${downloadPath}/${fileName}.webp`;
    const framesDir = `${downloadPath}/${fileName}_frames`;
@@ -48,24 +79,29 @@ export const downloadTgsFile = async (mediaData: MediaData, ctx: any) => {
 
       const scriptPath = path.join(__dirname, "../../src/scripts/tgs2frames.py");
       const result = execSync(`python3 ${scriptPath} ${tgsPath} ${framesDir}`).toString().trim();
-      
+
       const [, , frStr] = result.split(":");
       const frameRate = parseFloat(frStr) || 60;
 
-      await convertToWebp (
-         `${framesDir}/frame_%04d.png`, 
-         frameRate, 
-         webpPath
+      await convertToWebp(
+         `${framesDir}/frame_%04d.png`,
+         frameRate,
+         webpPath,
+         true
       );
+
+      if (fileUniqueId) {
+         fs.copyFileSync(webpPath, getCachePath(fileUniqueId));
+      }
 
       const stats = fs.statSync(webpPath);
       console.log("WebP size:", stats.size, "bytes");
 
       await sendStickerToWhatsApp(
-         { 
-            filePath: webpPath, 
-            mimeType: "image/webp", user 
-         }, 
+         {
+            filePath: webpPath,
+            mimeType: "image/webp", user
+         },
          ctx
       );
    } catch (error) {
@@ -79,7 +115,7 @@ export const downloadTgsFile = async (mediaData: MediaData, ctx: any) => {
 };
 
 export const downloadWebmFile = async (mediaData: MediaData, ctx: any) => {
-   const { user, fileUrl, fileName, downloadPath } = mediaData;
+   const { user, fileUrl, fileName, downloadPath, fileUniqueId } = mediaData;
    const webmPath = `${downloadPath}/${fileName}.webm`;
    const webpPath = `${downloadPath}/${fileName}.webp`;
 
@@ -98,8 +134,12 @@ export const downloadWebmFile = async (mediaData: MediaData, ctx: any) => {
          throw new Error("Downloaded WebM file is empty");
       }
 
-      await convertToWebp (webmPath, 30, webpPath);
-      
+      await convertToWebp(webmPath, 30, webpPath, true);
+
+      if (fileUniqueId) {
+         fs.copyFileSync(webpPath, getCachePath(fileUniqueId));
+      }
+
       const stats = fs.statSync(webpPath);
       console.log("WebP size:", stats.size, "bytes");
 
@@ -118,10 +158,10 @@ export const downloadWebpWebmFile = async (
   ctx: any,
   options: { fileType: string; mimeType: string }
 ) => {
-   const { user, fileUrl, fileName, downloadPath } = mediaData;
+   const { user, fileUrl, fileName, downloadPath, fileUniqueId } = mediaData;
    const { fileType, mimeType } = options;
    const filePath = `${downloadPath}/${fileName}.${fileType}`;
-   const outPath = `${downloadPath}/${fileName}_out.webp`
+   const outPath = `${downloadPath}/${fileName}_out.webp`;
 
    try {
       const writer = fs.createWriteStream(filePath);
@@ -133,7 +173,12 @@ export const downloadWebpWebmFile = async (
          writer.on("error", reject);
       });
 
-      await convertToWebp (filePath, 30, outPath);
+      await convertToWebp(filePath, 30, outPath, false);
+
+      if (fileUniqueId) {
+         fs.copyFileSync(outPath, getCachePath(fileUniqueId));
+      }
+
       await sendStickerToWhatsApp({ filePath: outPath, mimeType, user }, ctx);
 
       deleteFile(filePath);

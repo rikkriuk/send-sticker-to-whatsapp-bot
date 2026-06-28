@@ -1,23 +1,24 @@
 import { Context } from "telegraf";
 import { Message } from "telegraf/types";
-import { 
-   checkAndResetPremium, 
-   decrementStickerLimit, 
-   getTotalPages, 
-   getUser, 
-   getUsersWithPagination, 
-   resetStickerLimitIfNeeded, 
-   resetUserProcessing, 
-   saveOrUpateUser, 
-   savePhoneNumber, 
-   setUserProcessing, 
+import {
+   checkAndResetPremium,
+   decrementStickerLimit,
+   getTotalPages,
+   getUser,
+   getUsersWithPagination,
+   resetStickerLimitIfNeeded,
+   resetUserProcessing,
+   saveOrUpateUser,
+   savePhoneNumber,
+   setUserProcessing,
    updateLimit,
-   blockUser, 
-   unblockUser, 
+   blockUser,
+   unblockUser,
    setPremium,
    removePremium,
    deleteUser,
    getAllUsers,
+   getTopReferrers,
 } from "../services/userService";
 import messages from "../constants/messages";
 import { isValidWhatsAppNumber } from "./phoneValidate";
@@ -72,22 +73,18 @@ export const handleStart = async (ctx: Context) => {
 
    if (isNewUser) {
       try {
-         const adminMessage = `Ada Pengguna Baru! \n\n👤 *Informasi:*
-\n*${escapeMarkdown(user.name)}* ${user.isPremium ? "⭐" : ""}
+         const referralLine = referredBy
+            ? `\n├ Referral dari: [${referredBy}](tg://user?id=${referredBy})`
+            : "";
+         const adminMessage = `${referredBy ? "🔗 Pengguna Baru via Referral!" : "👤 Ada Pengguna Baru!"}\n\n*${escapeMarkdown(user.name)}* ${user.isPremium ? "⭐" : ""}
 ├ Role: ${user.role}
 ├ Username: ${user.userName ? `@${escapeMarkdown(user.userName)}` : "-"}
-├ WhatsApp: ${user.whatsappNumber ? '+' + `${user.whatsappNumber}` : '-'}
-├ Sticker Limit: ${user.stickerLimit}
+├ WhatsApp: ${user.whatsappNumber ? "+" + user.whatsappNumber : "-"}
+├ Sticker Limit: ${user.stickerLimit}${referralLine}
 ├ Dibuat: ${formattedDate(user.createdAt)}
 └ Telegram ID: [${user.telegramId}](tg://user?id=${user.telegramId})`;
 
-         await ctx.telegram.sendMessage(
-            ADMIN_TELEGRAM_ID, 
-            adminMessage, 
-            { 
-               parse_mode: "Markdown" 
-            }
-         );
+         await ctx.telegram.sendMessage(ADMIN_TELEGRAM_ID, adminMessage, { parse_mode: "Markdown" });
       } catch (e) {
          console.warn("Gagal mengirim notifikasi user baru ke admin:", e);
       }
@@ -159,10 +156,11 @@ export const hears = (ctx: Context) => {
 };
 
 export const handleStickerMessage = async (ctx: Context) => {
-   const message = ctx.message as { sticker: { file_id: string; is_animated: boolean; is_video: boolean } };
+   const message = ctx.message as { sticker: { file_id: string; file_unique_id: string; is_animated: boolean; is_video: boolean } };
    const fileId = message?.sticker?.file_id;
+   const fileUniqueId = message?.sticker?.file_unique_id;
    const isAnimated = message?.sticker?.is_animated;
-   const isVideo = message?.sticker?.is_video; 
+   const isVideo = message?.sticker?.is_video;
 
    const limitCost = isAnimated ? 3 : 1;
 
@@ -224,13 +222,13 @@ export const handleStickerMessage = async (ctx: Context) => {
 
    ctx.reply(messages.process, { parse_mode: "Markdown" });
 
-   processSticker(ctx, user, fileId, isPremium, limitCost).catch(async (error) => {
+   processSticker(ctx, user, fileId, fileUniqueId, isPremium, limitCost).catch(async (error) => {
       console.error("Error processing sticker:", error);
       if (!isAdmin) await resetUserProcessing(user._id);
    });
 };
 
-const processSticker = async (ctx: Context, user: any, fileId: string, isPremium: boolean, limitCost: number = 1) => {
+const processSticker = async (ctx: Context, user: any, fileId: string, fileUniqueId: string, isPremium: boolean, limitCost: number = 1) => {
    try {
       const downloadPath = "/tmp";
       if (!fs.existsSync(downloadPath)) {
@@ -242,6 +240,7 @@ const processSticker = async (ctx: Context, user: any, fileId: string, isPremium
          fileUrl: await getFileUrl(fileId),
          fileName: `${new Date().getTime()}`,
          downloadPath: downloadPath,
+         fileUniqueId,
       };
 
       await downloadFile(mediaData, ctx);
@@ -649,8 +648,8 @@ export const handleBroadcast = async (ctx: Context) => {
 
    await ctx.reply(`📤 Mengirim pesan ke ${users.length} user...`);
 
-   const BATCH_SIZE = 25;
-   const DELAY_BETWEEN_BATCH = 1000;
+   const BATCH_SIZE = 10;
+   const DELAY_BETWEEN_BATCH = 2000;
 
    for (let i = 0; i < users.length; i += BATCH_SIZE) {
       const batch = users.slice(i, i + BATCH_SIZE);
@@ -682,4 +681,30 @@ export const handleInvite = async (ctx: Context) => {
    await ctx.reply(`🔗 *Link Undangan Kamu:*`, { parse_mode: "Markdown" });
    await ctx.reply(inviteLink);
    await ctx.reply(`📢 Salin dan bagikan link di atas ke teman kamu!\nSetiap teman yang join, kamu dapat *+15 limit sticker* otomatis.`, { parse_mode: "Markdown" });
+};
+
+export const handleLeaderboard = async (ctx: Context) => {
+   const topReferrers = await getTopReferrers(10);
+
+   if (topReferrers.length === 0) {
+      ctx.reply("Belum ada referral. Jadilah yang pertama! /invite", { parse_mode: "Markdown" });
+      return;
+   }
+
+   const medals = ["🥇", "🥈", "🥉"];
+   const rows = topReferrers.map((user, i) => {
+      const rank = medals[i] ?? `${i + 1}.`;
+      const name = user.userName ? `@${escapeMarkdown(user.userName)}` : escapeMarkdown(user.name);
+      const premium = user.isPremium ? " ⭐" : "";
+      return `${rank} ${name}${premium} — *${user.referralCount}* teman`;
+   });
+
+   const message = [
+      "🏆 *Top Referral*\n",
+      rows.join("\n"),
+      "",
+      "_Undang teman lewat /invite dan dapatkan +15 limit per teman!_",
+   ].join("\n");
+
+   ctx.reply(message, { parse_mode: "Markdown" });
 };

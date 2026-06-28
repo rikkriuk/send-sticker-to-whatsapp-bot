@@ -24,7 +24,7 @@ export const saveOrUpateUser = async (chat: UserChat, referredBy?: number) => {
          if (referredBy && referredBy !== id) {
             await User.findOneAndUpdate(
                { telegramId: referredBy },
-               { $inc: { stickerLimit: 15 } }
+               { $inc: { stickerLimit: 15, referralCount: 1 } }
             );
          }
       } else {
@@ -189,4 +189,11 @@ export const removePremium = async (telegramId: number) => {
 
 export const deleteUser = async (telegramId: number) => {
    return await User.findOneAndDelete({ telegramId });
-}
+};
+
+export const getTopReferrers = async (limit: number = 10) => {
+   return await User.find({ referralCount: { $gt: 0 } })
+      .sort({ referralCount: -1 })
+      .limit(limit)
+      .select("name userName telegramId referralCount isPremium");
+};

@@ -15,6 +15,7 @@ export interface IUser extends Document {
   stickerLimitResetAt?: Date;
   premiumExpiredAt: Date | null;
   isBlocked: boolean;
+  referralCount: number;
   createdAt?: Date;
   updatedAt?: Date;
 }

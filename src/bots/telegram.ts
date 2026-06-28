@@ -1,21 +1,22 @@
 import { Telegraf } from "telegraf";
-import { 
-   handleStart, 
-   hears, 
-   handleTextMessage, 
-   handleStickerMessage, 
-   handleProfile, 
-   handleListUser, 
-   handleHelper, 
-   handleGuide, 
-   handleLimitCommand, 
-   handlePremiumCommand, 
-   handleBlockCommand, 
-   handleUserAction, 
-   handleExecuteAction, 
+import {
+   handleStart,
+   hears,
+   handleTextMessage,
+   handleStickerMessage,
+   handleProfile,
+   handleListUser,
+   handleHelper,
+   handleGuide,
+   handleLimitCommand,
+   handlePremiumCommand,
+   handleBlockCommand,
+   handleUserAction,
+   handleExecuteAction,
    handleDeleteCommand,
    handleBroadcast,
    handleInvite,
+   handleLeaderboard,
 } from "../helpers/telegramHelper";
 import { adminOnly } from "../middleware/adminMiddleware";
 
@@ -26,6 +27,7 @@ bot.command("profile", (ctx) => handleProfile(ctx));
 bot.command("help", (ctx) => handleHelper(ctx));
 bot.command("guide", (ctx) => handleGuide(ctx));
 bot.command("invite", (ctx) => handleInvite(ctx));
+bot.command("leaderboard", (ctx) => handleLeaderboard(ctx));
 
 bot.command("broadcast", adminOnly, (ctx) => handleBroadcast(ctx));
 bot.command("limit", adminOnly, (ctx) => handleLimitCommand(ctx));

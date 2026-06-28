@@ -18,9 +18,13 @@ export const USER_COMMANDS = [
       command: "help",    
       description: "❓ Bantuan" 
    },
-   { 
-      command: "invite",    
-      description: "🎁 Dapatkan 15+ limit gratis" 
+   {
+      command: "invite",
+      description: "🎁 Dapatkan 15+ limit gratis"
+   },
+   {
+      command: "leaderboard",
+      description: "🏆 Top referral"
    },
 ];
 

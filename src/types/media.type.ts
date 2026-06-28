@@ -5,4 +5,5 @@ export type MediaData = {
    fileUrl: string;
    fileName: string;
    downloadPath: string;
+   fileUniqueId?: string;
 }
