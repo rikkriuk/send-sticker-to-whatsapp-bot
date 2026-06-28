@@ -43,6 +43,10 @@ bot.hears("hi", (ctx) => hears(ctx));
 bot.on("text", (ctx) => handleTextMessage(ctx));
 bot.on("sticker", (ctx) => handleStickerMessage(ctx));
 
+bot.catch((err, ctx) => {
+   console.error(`[Bot Error] Update ${ctx.updateType}:`, err);
+});
+
 bot.launch();
 
 console.log("Bot Telegram berjalan...");

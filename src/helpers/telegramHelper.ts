@@ -36,6 +36,9 @@ const isTextMessage = (message: Message): message is Message.TextMessage => {
    return "text" in message;
 };
 
+const escapeMarkdown = (text: string): string =>
+   text.replace(/[_*`[\]]/g, (char) => `\\${char}`);
+
 whatsappEmitter.on("whatsappReady", () => {
    isClientReady = true;
 })
@@ -46,7 +49,7 @@ export const handleStart = async (ctx: Context) => {
       return;
    }
    
-   await ctx.reply(`_${messages.hi + ctx.chat.first_name}_`, { parse_mode: "Markdown" });
+   await ctx.reply(`_${messages.hi}${escapeMarkdown(ctx.chat.first_name ?? '')}_`, { parse_mode: "Markdown" });
 
    const startPayload = (ctx as any).startPayload as string | undefined;
    const referredBy = startPayload?.startsWith("ref_")
@@ -59,7 +62,7 @@ export const handleStart = async (ctx: Context) => {
       try {
          await ctx.telegram.sendMessage(
             referredBy,
-            `🎉 *Teman kamu berhasil join!*\n\n👤 ${ctx.chat.first_name} menggunakan link invite kamu.\n✅ Limit sticker kamu bertambah *+15*!`,
+            `🎉 *Teman kamu berhasil join!*\n\n👤 ${escapeMarkdown(ctx.chat.first_name ?? '')} menggunakan link invite kamu.\n✅ Limit sticker kamu bertambah *+15*!`,
             { parse_mode: "Markdown" }
          );
       } catch (_) {}
@@ -70,9 +73,9 @@ export const handleStart = async (ctx: Context) => {
    if (isNewUser) {
       try {
          const adminMessage = `Ada Pengguna Baru! \n\n👤 *Informasi:*
-\n*${user.name}* ${user.isPremium ? "⭐" : ""}
+\n*${escapeMarkdown(user.name)}* ${user.isPremium ? "⭐" : ""}
 ├ Role: ${user.role}
-├ Username: ${user.userName ? `@${user.userName}` : "-"}
+├ Username: ${user.userName ? `@${escapeMarkdown(user.userName)}` : "-"}
 ├ WhatsApp: ${user.whatsappNumber ? '+' + `${user.whatsappNumber}` : '-'}
 ├ Sticker Limit: ${user.stickerLimit}
 ├ Dibuat: ${formattedDate(user.createdAt)}
@@ -130,8 +133,8 @@ export const handleTextMessage = async (ctx: Context) => {
                   "",
                   "👤 *Informasi Pengguna:*",
                   "",
-                  `*${name}*`,
-                  `├ Username: ${userName ? `@${userName}` : '-'}`,
+                  `*${escapeMarkdown(name)}*`,
+                  `├ Username: ${userName ? `@${escapeMarkdown(userName)}` : '-'}`,
                   `├ Sebelumnya: ${previousNumber ? '+' + previousNumber : '-'}`,
                   `├ Baru: ${newNumber ? '+' + newNumber : '-'}`,
                   `└ Telegram ID: [${telegramId}](tg://user?id=${telegramId})`,
@@ -268,9 +271,9 @@ export const handleProfile = async (ctx: Context) => {
       : "Regular";
 
    const userInfo = `👤 *Informasi Profil:*\n
-*${user.name}* ${user.isPremium ? "⭐" : ""}
+*${escapeMarkdown(user.name)}* ${user.isPremium ? "⭐" : ""}
 ├ Role: ${user.role}
-├ Username: ${user.userName ? `@${user.userName}` : "-"}
+├ Username: ${user.userName ? `@${escapeMarkdown(user.userName)}` : "-"}
 ├ WhatsApp: ${user.whatsappNumber ? '+' + `\`${user.whatsappNumber}\`` : '-'}
 ├ Sticker Limit: ${user.stickerLimit}
 ├ Status Akun: ${premiumStatus}
@@ -329,9 +332,9 @@ export const handleListUser = async (ctx: Context) => {
    users.forEach((user, index) => {
       const no = (page - 1) * limit + index + 1;
       const whatsapp = user.whatsappNumber ? `+${user.whatsappNumber}` : "-";
-      const username = user.userName ? `@${user.userName}` : "-";
+      const username = user.userName ? `@${escapeMarkdown(user.userName)}` : "-";
 
-      message += `*${no}. ${user.name}* ${user.isPremium ? "⭐" : ""}\n`;
+      message += `*${no}. ${escapeMarkdown(user.name)}* ${user.isPremium ? "⭐" : ""}\n`;
       message += `├ Role: ${user.role}\n`;
       message += `├ Username: ${username}\n`;
       message += `├ WhatsApp: \`${whatsapp}\`\n`;
