@@ -649,21 +649,26 @@ export const handleBroadcast = async (ctx: Context) => {
 
    await ctx.reply(`📤 Mengirim pesan ke ${users.length} user...`);
 
-   for (const user of users) {
-      try {
-         await ctx.telegram.sendMessage(
-            user.telegramId, 
-            text, 
-            { 
-               parse_mode: "Markdown" 
-            }
-         );
-         success++;
-      } catch (_) {
-         failed++;
-      }
+   const BATCH_SIZE = 25;
+   const DELAY_BETWEEN_BATCH = 1000;
 
-      await new Promise(r => setTimeout(r, 250));
+   for (let i = 0; i < users.length; i += BATCH_SIZE) {
+      const batch = users.slice(i, i + BATCH_SIZE);
+
+      const results = await Promise.allSettled(
+         batch.map(user =>
+            ctx.telegram.sendMessage(user.telegramId, text, { parse_mode: "Markdown" })
+         )
+      );
+
+      results.forEach(r => {
+         if (r.status === "fulfilled") success++;
+         else failed++;
+      });
+
+      if (i + BATCH_SIZE < users.length) {
+         await new Promise(r => setTimeout(r, DELAY_BETWEEN_BATCH));
+      }
    }
 
    await ctx.reply(`✅ Selesai!\n\n📨 Berhasil: ${success}\n❌ Gagal: ${failed}`);
