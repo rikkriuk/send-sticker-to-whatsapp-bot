@@ -60,6 +60,12 @@ const connectToWhatsApp = async () => {
 
         if (jid.endsWith("@g.us")) continue;
 
+        const resolvedJid = jid.endsWith("@lid")
+          ? ((msg.key as any).remoteJidAlt ?? jid)
+          : jid;
+
+        if (resolvedJid.endsWith("@lid")) continue;
+
         const message = msg.message;
         const imageMsg =
           (message as any).imageMessage || (message as any).documentMessage;
@@ -94,7 +100,7 @@ const connectToWhatsApp = async () => {
               "Created by @SendStickerBot (WhatsApp)"
             );
 
-            await sock.sendMessage(jid, { sticker: stickerBuffer });
+            await sock.sendMessage(resolvedJid, { sticker: stickerBuffer });
           }
           continue;
         }
@@ -109,16 +115,15 @@ const connectToWhatsApp = async () => {
 
         if (trimmedText.startsWith(".")) continue;
 
-        // Cek global AI config (diatur admin)
         const aiConfig = await getAIConfig();
         if (!aiConfig.isWAAIEnabled) continue;
 
-        const phoneNumber = jid.replace("@s.whatsapp.net", "");
+        const phoneNumber = resolvedJid.replace("@s.whatsapp.net", "");
         const user = await getUserByWhatsappNumber(phoneNumber);
         if (!user) continue;
 
         const reply = await askAI(trimmedText, "whatsapp");
-        await sock.sendMessage(jid, { text: reply });
+        await sock.sendMessage(resolvedJid, { text: reply });
       }
     } catch (error) {
       console.error("Error processing incoming whatsapp message:", error);

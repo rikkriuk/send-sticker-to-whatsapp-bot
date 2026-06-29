@@ -165,7 +165,7 @@ export const handleTextMessage = async (ctx: Context) => {
       }
 
       const reply = await askAI(ctx.message.text, "telegram");
-      ctx.reply(reply, { parse_mode: "Markdown" });
+      ctx.reply(`_${escapeMarkdown(reply)}_`, { parse_mode: "Markdown" });
    }
 };
 
