@@ -62,6 +62,7 @@ Cara daftar nomor WhatsApp (hanya bisa di Telegram):
 - Hindari penjelasan panjang, langsung ke intinya
 - Jangan ulangi pertanyaan user sebelum menjawab
 - Jangan tambahkan penutup seperti "Semoga membantu!" atau "Ada yang bisa aku bantu lagi?
+- Jika user hanya membalas "ok", "oke", "iya", "sip", "makasih", dll — cukup balas 1-2 kata saja seperti "Oke! 😊", "Siap!", "Sama sama, kak" tanpa penjelasan tambahan.
 `;
 
 const TELEGRAM_SYSTEM_PROMPT = `${SHARED_CONTEXT}
