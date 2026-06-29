@@ -8,6 +8,8 @@ import { addStickerMetadata, makeBackgroundTransparent } from "../helpers/sticke
 import qrcode from "qrcode-terminal";
 import whatsappEmitter from "../events/eventEmitter";
 import { Boom } from "@hapi/boom";
+import { getUserByWhatsappNumber, getAIConfig } from "../services/userService";
+import { askAI } from "../services/aiService";
 
 let sock: ReturnType<typeof makeWASocket>;
 
@@ -54,48 +56,72 @@ const connectToWhatsApp = async () => {
       for (const msg of messages) {
         if (!msg.message || msg.key.fromMe) continue;
 
+        const jid = msg.key.remoteJid as string;
+
+        if (jid.endsWith("@g.us")) continue;
+
         const message = msg.message;
-        const imageMsg = 
+        const imageMsg =
           (message as any).imageMessage || (message as any).documentMessage;
-          
-        const caption = 
-          imageMsg?.caption 
-            || (message?.conversation as any) 
+
+        const caption =
+          imageMsg?.caption
+            || (message?.conversation as any)
             || (message?.extendedTextMessage?.text as any);
 
-        if (!imageMsg || !caption) continue;
+        if (imageMsg && caption) {
+          const trimmed = String(caption).trim();
 
-        const trimmed = String(caption).trim();
-
-        if (trimmed === ".sticker" || trimmed === ".sticker-t") {
-          const jid = msg.key.remoteJid as string;
-
-          const stream = await downloadContentFromMessage(imageMsg, "image");
-          const chunks: Buffer[] = [];
-          for await (const chunk of stream) {
-            chunks.push(Buffer.from(chunk));
-          }
-          let buffer: Buffer = Buffer.concat(chunks);
-
-          if (trimmed === ".sticker-t") {
-            try {
-              buffer = await makeBackgroundTransparent(buffer);
-            } catch (e) {
-              console.warn("Failed to make background transparent:", e);
+          if (trimmed === ".sticker" || trimmed === ".sticker-t") {
+            const stream = await downloadContentFromMessage(imageMsg, "image");
+            const chunks: Buffer[] = [];
+            for await (const chunk of stream) {
+              chunks.push(Buffer.from(chunk));
             }
+            let buffer: Buffer = Buffer.concat(chunks);
+
+            if (trimmed === ".sticker-t") {
+              try {
+                buffer = await makeBackgroundTransparent(buffer);
+              } catch (e) {
+                console.warn("Failed to make background transparent:", e);
+              }
+            }
+
+            const stickerBuffer = await addStickerMetadata(
+              buffer,
+              "Sticker",
+              "Created by @SendStickerBot (WhatsApp)"
+            );
+
+            await sock.sendMessage(jid, { sticker: stickerBuffer });
           }
-
-          const stickerBuffer = await addStickerMetadata(
-            buffer,
-            "Sticker",
-            "Created by @SendStickerBot (WhatsApp)"
-          );
-
-          await sock.sendMessage(jid, { sticker: stickerBuffer });
+          continue;
         }
+
+        const text =
+          (message?.conversation as string) ||
+          (message?.extendedTextMessage?.text as string);
+
+        if (!text) continue;
+
+        const trimmedText = text.trim();
+
+        if (trimmedText.startsWith(".")) continue;
+
+        // Cek global AI config (diatur admin)
+        const aiConfig = await getAIConfig();
+        if (!aiConfig.isWAAIEnabled) continue;
+
+        const phoneNumber = jid.replace("@s.whatsapp.net", "");
+        const user = await getUserByWhatsappNumber(phoneNumber);
+        if (!user) continue;
+
+        const reply = await askAI(trimmedText, "whatsapp");
+        await sock.sendMessage(jid, { text: reply });
       }
     } catch (error) {
-      console.error("Error processing incoming whatsapp message for sticker:", error);
+      console.error("Error processing incoming whatsapp message:", error);
     }
   });
 };

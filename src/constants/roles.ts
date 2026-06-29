@@ -50,9 +50,13 @@ export const ADMIN_COMMANDS = [
       command: "delete",  
       description: "🗑️ Hapus pengguna" 
    },
-   { 
+   {
       command: "block",
-      description: "🚫 Blokir/Unblokir pengguna" 
+      description: "🚫 Blokir/Unblokir pengguna"
+   },
+   {
+      command: "ai",
+      description: "🤖 Pengaturan AI asisten",
    },
 ];
 

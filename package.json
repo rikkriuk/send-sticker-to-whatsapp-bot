@@ -24,6 +24,7 @@
     "typescript": "^5.8.2"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@imgly/background-removal-node": "^1.4.5",
     "@whiskeysockets/baileys": "^7.0.0-rc13",
     "axios": "^1.8.3",

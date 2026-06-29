@@ -54,6 +54,14 @@ const UserSchema: Schema = new Schema(
       type: Number,
       default: 0,
     },
+    isTelegramAIEnabled: {
+      type: Boolean,
+      default: true,
+    },
+    isWAAIEnabled: {
+      type: Boolean,
+      default: true,
+    },
   },
   { timestamps: true }
 );

@@ -20,6 +20,9 @@ import {
    deleteUser,
    getAllUsers,
    getTopReferrers,
+   toggleTelegramAI,
+   toggleWAAI,
+   getAIConfig,
 } from "../services/userService";
 import messages from "../constants/messages";
 import { isValidWhatsAppNumber } from "./phoneValidate";
@@ -31,6 +34,7 @@ import whatsappEmitter from "../events/eventEmitter";
 import { setCommandsForUser } from "../middleware/adminMiddleware";
 import { ADMIN_TELEGRAM_ID, ADMIN_TELEGRAM_USERNAME, ROLES } from "../constants/roles";
 import { getTimeUntilReset } from "./time";
+import { askAI } from "../services/aiService";
 
 let isClientReady: boolean = false;
 
@@ -123,7 +127,7 @@ export const handleTextMessage = async (ctx: Context) => {
 
          try {
             const { telegramId, name, userName, previousNumber, newNumber } = response as any;
-            
+
             // Only notify admin when number was added or changed
             if (previousNumber !== newNumber) {
                const adminLines = [
@@ -148,7 +152,20 @@ export const handleTextMessage = async (ctx: Context) => {
          ctx.reply("Klik /start", { parse_mode: "Markdown" });
       }
    } else {
-      ctx.reply(messages.inValidNumber, { parse_mode: "Markdown" });
+      const aiConfig = await getAIConfig();
+      if (!aiConfig.isTelegramAIEnabled) {
+         ctx.reply("_AI asisten sedang dinonaktifkan oleh admin._", { parse_mode: "Markdown" });
+         return;
+      }
+
+      const user = await getUser(ctx.message.chat.id);
+      if (!user) {
+         ctx.reply("Klik /start", { parse_mode: "Markdown" });
+         return;
+      }
+
+      const reply = await askAI(ctx.message.text, "telegram");
+      ctx.reply(reply, { parse_mode: "Markdown" });
    }
 };
 
@@ -712,4 +729,72 @@ export const handleLeaderboard = async (ctx: Context) => {
    ].join("\n");
 
    ctx.reply(message, { parse_mode: "Markdown" });
+};
+
+const buildAISettingsMessage = (isTelegramAIEnabled: boolean, isWAAIEnabled: boolean) => {
+   const teleStatus = isTelegramAIEnabled ? "✅ Aktif" : "❌ Nonaktif";
+   const waStatus = isWAAIEnabled ? "✅ Aktif" : "❌ Nonaktif";
+   return [
+      "⚙️ *Pengaturan AI Asisten*\n",
+      `├ Telegram: ${teleStatus}`,
+      `└ WhatsApp: ${waStatus}`,
+   ].join("\n");
+};
+
+const buildAISettingsKeyboard = (isTelegramAIEnabled: boolean, isWAAIEnabled: boolean) => ({
+   reply_markup: {
+      inline_keyboard: [
+         [
+            {
+               text: isTelegramAIEnabled ? "🔴 Matikan AI Telegram" : "🟢 Aktifkan AI Telegram",
+               callback_data: "ai_toggle_telegram",
+            },
+         ],
+         [
+            {
+               text: isWAAIEnabled ? "🔴 Matikan AI WhatsApp" : "🟢 Aktifkan AI WhatsApp",
+               callback_data: "ai_toggle_wa",
+            },
+         ],
+      ],
+   },
+});
+
+export const handleAISettings = async (ctx: Context) => {
+   const config = await getAIConfig();
+
+   const text = buildAISettingsMessage(config.isTelegramAIEnabled, config.isWAAIEnabled);
+   const keyboard = buildAISettingsKeyboard(config.isTelegramAIEnabled, config.isWAAIEnabled);
+
+   ctx.reply(text, { parse_mode: "Markdown", ...keyboard });
+};
+
+export const handleAIToggle = async (ctx: Context) => {
+   const callbackData = (ctx as any).callbackQuery?.data as string;
+   const adminId = parseInt(process.env.ADMIN_TELEGRAM_ID || "");
+
+   let config = await getAIConfig();
+   let newTelegramAI = config.isTelegramAIEnabled;
+   let newWAAI = config.isWAAIEnabled;
+
+   if (callbackData === "ai_toggle_telegram") {
+      const result = await toggleTelegramAI(adminId);
+      if (result === null) return;
+      newTelegramAI = result;
+      (ctx as any).answerCbQuery(newTelegramAI ? "AI Telegram diaktifkan ✅" : "AI Telegram dimatikan ❌");
+   } else if (callbackData === "ai_toggle_wa") {
+      const result = await toggleWAAI(adminId);
+      if (result === null) return;
+      newWAAI = result;
+      (ctx as any).answerCbQuery(newWAAI ? "AI WhatsApp diaktifkan ✅" : "AI WhatsApp dimatikan ❌");
+   }
+
+   const text = buildAISettingsMessage(newTelegramAI, newWAAI);
+   const keyboard = buildAISettingsKeyboard(newTelegramAI, newWAAI);
+
+   try {
+      await (ctx as any).editMessageText(text, { parse_mode: "Markdown", ...keyboard });
+   } catch {
+      ctx.reply(text, { parse_mode: "Markdown", ...keyboard });
+   }
 };

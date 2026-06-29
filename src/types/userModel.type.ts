@@ -16,6 +16,8 @@ export interface IUser extends Document {
   premiumExpiredAt: Date | null;
   isBlocked: boolean;
   referralCount: number;
+  isTelegramAIEnabled: boolean;
+  isWAAIEnabled: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }

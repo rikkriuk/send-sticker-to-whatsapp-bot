@@ -200,3 +200,33 @@ export const getTopReferrers = async (limit: number = 10) => {
       .limit(limit)
       .select("name userName telegramId referralCount isPremium");
 };
+
+export const getUserByWhatsappNumber = async (whatsappNumber: string) => {
+   return await User.findOne({ whatsappNumber });
+};
+
+export const getAIConfig = async () => {
+   const adminId = parseInt(process.env.ADMIN_TELEGRAM_ID || "");
+   if (!adminId) return { isTelegramAIEnabled: true, isWAAIEnabled: true };
+   const admin = await User.findOne({ telegramId: adminId });
+   return {
+      isTelegramAIEnabled: admin?.isTelegramAIEnabled ?? true,
+      isWAAIEnabled: admin?.isWAAIEnabled ?? true,
+   };
+};
+
+export const toggleTelegramAI = async (telegramId: number) => {
+   const user = await User.findOne({ telegramId });
+   if (!user) return null;
+   const newValue = !user.isTelegramAIEnabled;
+   await User.findOneAndUpdate({ telegramId }, { $set: { isTelegramAIEnabled: newValue } });
+   return newValue;
+};
+
+export const toggleWAAI = async (telegramId: number) => {
+   const user = await User.findOne({ telegramId });
+   if (!user) return null;
+   const newValue = !user.isWAAIEnabled;
+   await User.findOneAndUpdate({ telegramId }, { $set: { isWAAIEnabled: newValue } });
+   return newValue;
+};
