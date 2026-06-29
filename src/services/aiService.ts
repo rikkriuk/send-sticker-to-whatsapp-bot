@@ -58,6 +58,10 @@ Cara daftar nomor WhatsApp (hanya bisa di Telegram):
   - Jika kamu di Telegram, fokus pada fitur Telegram (perintah /start, /profile, dll)
   - Jika kamu di WhatsApp, fokus pada fitur WhatsApp (kirim foto dengan caption .sticker)
   - Jangan campurkan fitur dari kedua platform dalam satu jawaban jika tidak relevan
+- Jawab SINGKAT dan PADAT
+- Hindari penjelasan panjang, langsung ke intinya
+- Jangan ulangi pertanyaan user sebelum menjawab
+- Jangan tambahkan penutup seperti "Semoga membantu!" atau "Ada yang bisa aku bantu lagi?
 `;
 
 const TELEGRAM_SYSTEM_PROMPT = `${SHARED_CONTEXT}
