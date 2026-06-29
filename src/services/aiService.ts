@@ -1,5 +1,3 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
 export type AIPlatform = "telegram" | "whatsapp";
 
 // Prompt
@@ -51,6 +49,15 @@ Cara daftar nomor WhatsApp (hanya bisa di Telegram):
 - Jawab dalam Bahasa Indonesia
 - Jawaban singkat dan jelas
 - Jangan mengarang fitur yang tidak ada
+- Gunakan baris baru untuk memisahkan poin atau langkah dan garis 2x agar tulisannya lebih rapih
+- Jangan tulis semua dalam satu paragraf panjang
+- Kalau ada lebih dari satu poin, tulis per baris dengan nomor atau tanda "-"
+- Kamu TIDAK BISA dan TIDAK TAHU apakah nomor WhatsApp seseorang sudah terdaftar atau belum — jangan pernah mengklaim nomor sudah/belum tercatat
+- Jika user mengirim teks yang terlihat seperti nomor HP, perhatikan nomernya dan koreksi jika ga valid dan arahkan untuk mengetikkan nomor yang valid langsung di chat (khusus Telegram)
+- Pastikan kamu menjawab berdasarkan lingkup tertentu, misalnya:
+  - Jika kamu di Telegram, fokus pada fitur Telegram (perintah /start, /profile, dll)
+  - Jika kamu di WhatsApp, fokus pada fitur WhatsApp (kirim foto dengan caption .sticker)
+  - Jangan campurkan fitur dari kedua platform dalam satu jawaban jika tidak relevan
 `;
 
 const TELEGRAM_SYSTEM_PROMPT = `${SHARED_CONTEXT}
@@ -70,31 +77,33 @@ Di WhatsApp tidak ada perintah slash (/) — jangan rekomendasikan perintah /sta
 Jika pengguna butuh mengatur akun (daftar, ganti nomor, lihat profil, dll), arahkan mereka untuk membuka bot di Telegram karena pengaturan akun hanya bisa dilakukan di sana.
 Di sini hanya punya fitur untuk ubah gambar jadi stiker: cukup kirim foto dengan caption .sticker langsung di chat ini.`;
 
-let genAI: GoogleGenerativeAI | null = null;
-
-function getGenAI(): GoogleGenerativeAI {
-  if (!genAI) {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) throw new Error("GEMINI_API_KEY not set");
-    genAI = new GoogleGenerativeAI(apiKey);
-  }
-  return genAI;
-}
-
 export async function askAI(userMessage: string, platform: AIPlatform = "telegram"): Promise<string> {
   const systemPrompt = platform === "whatsapp" ? WHATSAPP_SYSTEM_PROMPT : TELEGRAM_SYSTEM_PROMPT;
   const fallback = platform === "whatsapp"
     ? "Maaf, asisten sedang tidak tersedia. Kirim foto dengan caption .sticker untuk membuat stiker."
     : "Maaf, asisten sedang tidak tersedia. Ketik /help untuk bantuan.";
 
+  const apiKey = process.env.AI_API_KEY;
+  if (!apiKey) throw new Error("AI_API_KEY not set");
+
   try {
-    const model = getGenAI().getGenerativeModel({
-      model: "gemini-2.5-flash",
-      systemInstruction: systemPrompt,
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userMessage },
+        ],
+      }),
     });
 
-    const result = await model.generateContent(userMessage);
-    return result.response.text().trim();
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content?.trim() ?? fallback;
   } catch (error) {
     console.error("AI error:", error);
     return fallback;
