@@ -413,7 +413,7 @@ export const handleSelectUser = async (ctx: Context, action: string, page: numbe
    let message = `*Pilih user untuk ${action} (Halaman ${page} dari ${totalPages}):*\n\n`;
 
    const userButtons = users.map(user => ([{
-      text: `${user.name} ${user.isPremium ? "⭐" : ""} ${user.isBlocked ? "🚫" : ""}`,
+      text: `${user.name} (${user.userName || "N/A"}) ${user.isPremium ? "⭐" : ""} ${user.isBlocked ? "🚫" : ""}`,
       callback_data: `${action}_user_${user.telegramId}_${page}`
    }]));
 
