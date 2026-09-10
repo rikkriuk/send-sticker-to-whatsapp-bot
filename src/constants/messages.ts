@@ -16,7 +16,7 @@ const messages = {
   validNumber: "_Nomor tersimpan📝 \nSilahkan kirim stiker!_",
   inValidNumber: "_Nomor WhatsApp tidak valid._",
   sendSticker: "_Silahkan kirim stiker kamu!_",
-  existedNumber: "_Silahkan kirim stiker!\n\nJika ingin memperbaharui nomor WhatsApp, cukup ketika nomornya. contoh formatnya seperti ini: 081234567890_",
+  existedNumber: "_Silahkan kirim stiker!\n\nJika ingin memperbaharui nomor WhatsApp, cukup ketika nomornya. Contoh formatnya seperti ini: 081234567890_",
   inValidTextFormat: "_Harap kirimkan pesan dalam format teks._",
   chatNotFound: "_Chat tidak tersedia._",
   help: "_Halo! Ada yang bisa saya bantu?_",
