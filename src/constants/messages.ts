@@ -25,7 +25,7 @@ const messages = {
   chatNotFound: "_Chat tidak tersedia._",
   help: "_Halo! Ada yang bisa saya bantu?_",
   stickerLimit: (resetTime: string) =>
-    `_Pengiriman stiker hari ini mencapai batas! ⏰\n\nCoba lagi dalam: *${resetTime}*_`,
+    `_Pengiriman stiker hari ini mencapai batas! ⏰\n\nCoba lagi dalam: *${resetTime}* atau dapatkan limit di bawah ini 👇_`,
   userNotFound: "_User tidak ditemukan_",
   updateLimit: "_Limit berhasil ditambah (10+)_",
   invalidUpdateLimitFormat:

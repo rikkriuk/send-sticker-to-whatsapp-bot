@@ -21,11 +21,11 @@ export const USER_COMMANDS = [
    },
    {
       command: "review",
-      description: "⭐ Review bot"
+      description: "⭐ Kasih ulasan bot"
    },
    {
       command: "list_review",
-      description: "📜 Lihat semua review"
+      description: "📜 Lihat semua ulasan"
    },
 ];
 

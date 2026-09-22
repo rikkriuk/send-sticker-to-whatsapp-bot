@@ -339,14 +339,13 @@ export const handleStickerMessage = async (ctx: Context) => {
    const isPremium = await checkAndResetPremium(user);
 
    const replyStickerLimit = (ctx: Context) => {
-      const buttons: any[] = [
-         [{ text: "👥 Undang Teman (+15 limit)", callback_data: "get_invite_link" }],
-      ];
+      const buttons: any[] = [];
 
       if (!user.hasReviewed) {
          buttons.push([{ text: "⭐ Kasih Ulasan Bot (+10 limit)", callback_data: "review_prompt" }]);
       }
 
+      buttons.push([{ text: "👥 Undang Teman (+15 limit)", callback_data: "get_invite_link" }]);
       buttons.push([{ text: "⭐ Upgrade Premium (unlimited) - 5K", url: `https://t.me/${ADMIN_TELEGRAM_USERNAME}` }]);
 
       return ctx.reply(
