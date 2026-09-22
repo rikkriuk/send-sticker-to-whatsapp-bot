@@ -14,6 +14,6 @@ npm run build
 mkdir -p dist/scripts && cp src/scripts/remove_bg.py dist/scripts/
 
 echo "♻️ Restarting bot..."
-pm2 restart sticker-bot
+pm2 restart send-sticker-bot
 
 echo "✅ Deploy selesai!"
