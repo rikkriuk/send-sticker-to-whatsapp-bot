@@ -339,15 +339,22 @@ export const handleStickerMessage = async (ctx: Context) => {
    const isPremium = await checkAndResetPremium(user);
 
    const replyStickerLimit = (ctx: Context) => {
+      const buttons: any[] = [
+         [{ text: "👥 Undang Teman (+15 limit)", callback_data: "get_invite_link" }],
+      ];
+
+      if (!user.hasReviewed) {
+         buttons.push([{ text: "⭐ Review bot (+10 limit)", callback_data: "review_prompt" }]);
+      }
+
+      buttons.push([{ text: "⭐ Upgrade Premium (unlimited) - 5K", url: `https://t.me/${ADMIN_TELEGRAM_USERNAME}` }]);
+
       return ctx.reply(
          messages.stickerLimit(getTimeUntilReset(user.stickerLimitResetAt ?? user.createdAt)),
          {
             parse_mode: "Markdown",
             reply_markup: {
-               inline_keyboard: [
-                  [{ text: "⭐ Upgrade Premium (unlimited) - 5K", url: `https://t.me/${ADMIN_TELEGRAM_USERNAME}` }],
-                  [{ text: "👥 Undang Teman (+15 limit)", callback_data: "get_invite_link" }],
-               ]
+               inline_keyboard: buttons,
             }
          }
       );

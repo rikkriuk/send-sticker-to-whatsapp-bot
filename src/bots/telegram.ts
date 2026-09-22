@@ -36,6 +36,10 @@ bot.command("guide", (ctx) => handleGuide(ctx));
 bot.command("review", (ctx) => handleReviewCommand(ctx));
 bot.command("list_review", (ctx) => handleReviewsList(ctx));
 bot.command("invite", (ctx) => handleInvite(ctx));
+bot.action("review_prompt", async (ctx) => {
+   await ctx.answerCbQuery();
+   await handleReviewCommand(ctx);
+});
 bot.action(/^delete_review_(\d+)$/, adminOnly, async (ctx) => {
    const telegramId = Number((ctx.callbackQuery as any).data?.replace("delete_review_", ""));
    const user = await getUser(telegramId);
