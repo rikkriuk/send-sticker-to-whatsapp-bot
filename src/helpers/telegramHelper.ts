@@ -344,7 +344,7 @@ export const handleStickerMessage = async (ctx: Context) => {
       ];
 
       if (!user.hasReviewed) {
-         buttons.push([{ text: "⭐ Review bot (+10 limit)", callback_data: "review_prompt" }]);
+         buttons.push([{ text: "⭐ Kasih Ulasan Bot (+10 limit)", callback_data: "review_prompt" }]);
       }
 
       buttons.push([{ text: "⭐ Upgrade Premium (unlimited) - 5K", url: `https://t.me/${ADMIN_TELEGRAM_USERNAME}` }]);
