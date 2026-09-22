@@ -127,7 +127,7 @@ export const handleReviewCommand = async (ctx: Context) => {
    if (user.hasReviewed) {
       const reviewText = user.reviewText || "Belum ada review";
       await ctx.reply(
-         `_*Review kamu saat ini:*_\n\n“${escapeMarkdown(reviewText)}”\n\nKamu bisa memperbarui review dengan mengirim teks baru di chat ini. Reward hanya diberikan sekali.`,
+         `*Review kamu saat ini:*\n\n“${escapeMarkdown(reviewText)}”\n\n_Kamu bisa memperbarui review dengan mengirim teks baru di chat ini. Reward hanya diberikan sekali._`,
          { parse_mode: "Markdown" }
       );
       pendingReviewUsers.add(ctx.chat.id);
