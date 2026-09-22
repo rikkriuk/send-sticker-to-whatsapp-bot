@@ -209,6 +209,19 @@ export const handleTextMessage = async (ctx: Context) => {
             return;
          }
 
+         try {
+            const adminReviewMessage = [
+               "✏️ *Review User Diperbarui!*",
+               "",
+               `*${escapeMarkdown(user.name || "User")}* ${user.isPremium ? "⭐" : ""}`,
+               `├ Username: ${user.userName ? `@${escapeMarkdown(user.userName)}` : "-"}`,
+               `├ Review: ${escapeMarkdown(text)}`,
+               `└ Telegram ID: [${user.telegramId}](tg://user?id=${user.telegramId})`,
+            ].join("\n");
+
+            await ctx.telegram.sendMessage(ADMIN_TELEGRAM_ID, adminReviewMessage, { parse_mode: "Markdown" });
+         } catch (_) {}
+
          ctx.reply(messages.reviewUpdated, { parse_mode: "Markdown" });
          return;
       }
@@ -222,6 +235,20 @@ export const handleTextMessage = async (ctx: Context) => {
          }
          return;
       }
+
+      try {
+         const adminReviewMessage = [
+            "⭐ *Review Baru Diterima!*",
+            "",
+            `*${escapeMarkdown(user.name || "User")}* ${user.isPremium ? "⭐" : ""}`,
+            `├ Username: ${user.userName ? `@${escapeMarkdown(user.userName)}` : "-"}`,
+            `├ Reward: +10 limit sticker`,
+            `├ Review: ${escapeMarkdown(text)}`,
+            `└ Telegram ID: [${user.telegramId}](tg://user?id=${user.telegramId})`,
+         ].join("\n");
+
+         await ctx.telegram.sendMessage(ADMIN_TELEGRAM_ID, adminReviewMessage, { parse_mode: "Markdown" });
+      } catch (_) {}
 
       ctx.reply(messages.reviewSubmitted, { parse_mode: "Markdown" });
       return;
