@@ -46,7 +46,7 @@ const isTextMessage = (message: Message): message is Message.TextMessage => {
    return "text" in message;
 };
 
-const escapeMarkdown = (text: string): string =>
+export const escapeMarkdown = (text: string): string =>
    text.replace(/[_*`[\]]/g, (char) => `\\${char}`);
 
 whatsappEmitter.on("whatsappReady", () => {
@@ -101,7 +101,8 @@ export const handleStart = async (ctx: Context) => {
    
    const totalUsers = await getTotalUsers();
    const reviews = await getRecentReviews(1);
-   await ctx.reply(messages.about(totalUsers, reviews.length > 0), { parse_mode: "Markdown" });
+   await ctx.reply(messages.about, { parse_mode: "Markdown" });
+   await ctx.reply(messages.totalUsersInfo(totalUsers, reviews.length > 0), { parse_mode: "Markdown" });
    // if (!user.whatsappNumber) {
    //    await ctx.reply(messages.whatsAppInfo, { parse_mode: "Markdown" });
    // } else {
@@ -145,13 +146,31 @@ export const handleReviewsList = async (ctx: Context) => {
       return;
    }
 
+   const currentUser = await getUser(ctx.chat?.id);
+   const isAdmin = currentUser?.role === ROLES.ADMIN;
    const lines = reviews.map((review, index) => {
       const name = review.userName ? `@${escapeMarkdown(review.userName)}` : escapeMarkdown(review.name || "User");
       const text = escapeMarkdown(review.reviewText || "-");
       return `${index + 1}. *${name}*\n“${text}”`;
    });
 
-   await ctx.reply(`*Ulasan Terbaru*\n\n${lines.join("\n\n")}`, { parse_mode: "Markdown" });
+   const baseReply = `*Ulasan Terbaru*\n\n${lines.join("\n\n")}`;
+
+   if (!isAdmin) {
+      await ctx.reply(baseReply, { parse_mode: "Markdown" });
+      return;
+   }
+
+   const keyboard = {
+      reply_markup: {
+         inline_keyboard: reviews.map((review) => [{
+            text: `🗑️ Hapus review @${review.userName || review.name || review.telegramId}`,
+            callback_data: `delete_review_${review.telegramId}`,
+         }]),
+      },
+   };
+
+   await ctx.reply(baseReply, { parse_mode: "Markdown", ...keyboard });
 };
 
 export const handleTextMessage = async (ctx: Context) => {
@@ -484,7 +503,8 @@ export const handleListUser = async (ctx: Context) => {
 export const handleHelper = async (ctx: Context) => {
    const totalUsers = await getTotalUsers();
    const reviews = await getRecentReviews(1);
-   await ctx.reply(messages.about(totalUsers, reviews.length > 0), { parse_mode: "Markdown" });
+   await ctx.reply(messages.about, { parse_mode: "Markdown" });
+   await ctx.reply(messages.totalUsersInfo(totalUsers, reviews.length > 0), { parse_mode: "Markdown" });
 }
 
 export const handleGuide = (ctx: Context) => {

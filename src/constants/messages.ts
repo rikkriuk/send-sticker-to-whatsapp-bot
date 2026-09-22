@@ -7,10 +7,11 @@ const messages = {
   success: "_Stiker berhasil dikirim!_",
   failed: "_Stiker gagal dikirim!_",
   downloadFailed: "_Gagal mengunduh file_",
-  about: (totalUsers: number, hasReviews: boolean = false) =>
-    `_@SendStickerBot merupakan bot yang bisa mengirimkan sticker Telegram ke WhatsApp secara otomatis lewat pesan.\n\nSaat ini sudah ada *${totalUsers}* pengguna yang menikmati layanan ini${
-      hasReviews ? " (lihat review mereka /list-review)" : ""
-    }.\n\nDibuat oleh: ${ADMIN_NAME} (@${ADMIN_TELEGRAM_USERNAME})_`,
+  about: `_@SendStickerBot merupakan bot yang bisa mengirimkan sticker Telegram ke WhatsApp secara otomatis lewat pesan.\n\nDibuat oleh: ${ADMIN_NAME} (@${ADMIN_TELEGRAM_USERNAME})_`,
+  totalUsersInfo: (totalUsers: number, hasReviews: boolean = false) =>
+    `_Saat ini sudah ada *${totalUsers}* pengguna yang menikmati layanan ini${
+      hasReviews ? " (lihat review mereka /list_review)" : ""
+    }._`,
   whatsAppInfo: `_Bot belum menemukan nomor WhatsApp kamu, silahkan tulis nomor WhatsApp! \n\nNomor yang kamu masukan akan menjadi tempat penerima stiker yang masuk lewat pesan.  \n\nContoh: 085722710523
   _`,
   invalidNumber:

@@ -23,6 +23,9 @@ import {
    handleReviewsList,
 } from "../helpers/telegramHelper";
 import { adminOnly } from "../middleware/adminMiddleware";
+import { getUser } from "../services/userService";
+import { deleteUserReview } from "../services/userService";
+import { escapeMarkdown } from "../helpers/telegramHelper";
 
 export const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN as string);
 
@@ -33,6 +36,18 @@ bot.command("guide", (ctx) => handleGuide(ctx));
 bot.command("review", (ctx) => handleReviewCommand(ctx));
 bot.command("list_review", (ctx) => handleReviewsList(ctx));
 bot.command("invite", (ctx) => handleInvite(ctx));
+bot.action(/^delete_review_(\d+)$/, adminOnly, async (ctx) => {
+   const telegramId = Number((ctx.callbackQuery as any).data?.replace("delete_review_", ""));
+   const user = await getUser(telegramId);
+   if (!user) {
+      await ctx.answerCbQuery("User tidak ditemukan");
+      return;
+   }
+
+   await deleteUserReview(telegramId);
+   await ctx.answerCbQuery("✅ Review berhasil dihapus");
+   await ctx.editMessageText(`✅ Review dari *${escapeMarkdown(user.name || "User")}* berhasil dihapus.`, { parse_mode: "Markdown" });
+});
 bot.command("leaderboard", (ctx) => handleLeaderboard(ctx));
 bot.command("ai", adminOnly, (ctx) => handleAISettings(ctx));
 
