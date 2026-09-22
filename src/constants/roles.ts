@@ -24,7 +24,7 @@ export const USER_COMMANDS = [
       description: "⭐ Review bot"
    },
    {
-      command: "list-review",
+      command: "list_review",
       description: "📜 Lihat semua review"
    },
 ];
@@ -58,10 +58,6 @@ export const ADMIN_COMMANDS = [
    {
       command: "ai",
       description: "🤖 Pengaturan AI asisten",
-   },
-   {
-      command: "list-review",
-      description: "📜 Lihat semua review",
    },
 ];
 
