@@ -123,7 +123,11 @@ const connectToWhatsApp = async () => {
         if (!user) continue;
 
         const reply = await askAI(trimmedText, "whatsapp");
-        await sock.sendMessage(resolvedJid, { text: reply });
+        const finalReply = reply?.trim();
+
+        if (!finalReply) continue;
+
+        await sock.sendMessage(resolvedJid, { text: finalReply });
       }
     } catch (error) {
       console.error("Error processing incoming whatsapp message:", error);

@@ -18,6 +18,11 @@ export interface IUser extends Document {
   referralCount: number;
   isTelegramAIEnabled: boolean;
   isWAAIEnabled: boolean;
+  hasReviewed: boolean;
+  reviewText: string;
+  reviewSubmittedAt?: Date | null;
+  reviewUpdatedAt?: Date | null;
+  reviewRewardGranted: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }

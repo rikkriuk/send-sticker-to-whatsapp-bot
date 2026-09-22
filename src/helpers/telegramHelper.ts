@@ -23,6 +23,9 @@ import {
    toggleTelegramAI,
    toggleWAAI,
    getAIConfig,
+   submitUserReview,
+   updateUserReview,
+   getRecentReviews,
 } from "../services/userService";
 import messages from "../constants/messages";
 import { isValidWhatsAppNumber, looksLikePhoneNumber } from "./phoneValidate";
@@ -37,6 +40,7 @@ import { getTimeUntilReset } from "./time";
 import { askAI } from "../services/aiService";
 
 let isClientReady: boolean = false;
+const pendingReviewUsers = new Set<number>();
 
 const isTextMessage = (message: Message): message is Message.TextMessage => {
    return "text" in message;
@@ -95,7 +99,9 @@ export const handleStart = async (ctx: Context) => {
       }
    }
    
-   await ctx.reply(messages.about, { parse_mode: "Markdown" });
+   const totalUsers = await getTotalUsers();
+   const reviews = await getRecentReviews(1);
+   await ctx.reply(messages.about(totalUsers, reviews.length > 0), { parse_mode: "Markdown" });
    // if (!user.whatsappNumber) {
    //    await ctx.reply(messages.whatsAppInfo, { parse_mode: "Markdown" });
    // } else {
@@ -103,6 +109,49 @@ export const handleStart = async (ctx: Context) => {
    // }
    // await ctx.reply(messages.notes, { parse_mode: "Markdown" });
    await ctx.reply(messages.sendSticker, { parse_mode: "Markdown" });
+};
+
+export const handleReviewCommand = async (ctx: Context) => {
+   if (!ctx.chat || ctx.chat.type !== "private") {
+      ctx.reply(messages.chatNotFound, { parse_mode: "Markdown" });
+      return;
+   }
+
+   const user = await getUser(ctx.chat.id);
+   if (!user) {
+      ctx.reply("Klik /start", { parse_mode: "Markdown" });
+      return;
+   }
+
+   if (user.hasReviewed) {
+      const reviewText = user.reviewText || "Belum ada review";
+      await ctx.reply(
+         `_*Review kamu saat ini:*_\n\n“${escapeMarkdown(reviewText)}”\n\nKamu bisa memperbarui review dengan mengirim teks baru di chat ini. Reward hanya diberikan sekali.`,
+         { parse_mode: "Markdown" }
+      );
+      pendingReviewUsers.add(ctx.chat.id);
+      return;
+   }
+
+   pendingReviewUsers.add(ctx.chat.id);
+   await ctx.reply(messages.reviewPrompt, { parse_mode: "Markdown" });
+};
+
+export const handleReviewsList = async (ctx: Context) => {
+   const reviews = await getRecentReviews(10);
+
+   if (!reviews.length) {
+      ctx.reply(messages.reviewsEmpty, { parse_mode: "Markdown" });
+      return;
+   }
+
+   const lines = reviews.map((review, index) => {
+      const name = review.userName ? `@${escapeMarkdown(review.userName)}` : escapeMarkdown(review.name || "User");
+      const text = escapeMarkdown(review.reviewText || "-");
+      return `${index + 1}. *${name}*\n“${text}”`;
+   });
+
+   await ctx.reply(`*Ulasan Terbaru*\n\n${lines.join("\n\n")}`, { parse_mode: "Markdown" });
 };
 
 export const handleTextMessage = async (ctx: Context) => {
@@ -116,6 +165,46 @@ export const handleTextMessage = async (ctx: Context) => {
 
    if (match) {
       ctx.reply(messages.inValidCommand, { parse_mode: "Markdown" });
+      return;
+   }
+
+   if (pendingReviewUsers.has(ctx.message.chat.id)) {
+      pendingReviewUsers.delete(ctx.message.chat.id);
+
+      const user = await getUser(ctx.message.chat.id);
+      if (!user) {
+         ctx.reply("Klik /start", { parse_mode: "Markdown" });
+         return;
+      }
+
+      const text = ctx.message.text.trim();
+      if (!text) {
+         ctx.reply(messages.inValidTextFormat, { parse_mode: "Markdown" });
+         return;
+      }
+
+      if (user.hasReviewed) {
+         const result = await updateUserReview(user.telegramId, text);
+         if (!result || !result.success) {
+            ctx.reply(messages.inValidTextFormat, { parse_mode: "Markdown" });
+            return;
+         }
+
+         ctx.reply(messages.reviewUpdated, { parse_mode: "Markdown" });
+         return;
+      }
+
+      const result = await submitUserReview(user.telegramId, text);
+      if (!result || result.success === false) {
+         if (result?.reason === "already_reviewed") {
+            ctx.reply(messages.reviewAlreadyExists, { parse_mode: "Markdown" });
+         } else {
+            ctx.reply(messages.inValidTextFormat, { parse_mode: "Markdown" });
+         }
+         return;
+      }
+
+      ctx.reply(messages.reviewSubmitted, { parse_mode: "Markdown" });
       return;
    }
 
@@ -392,8 +481,10 @@ export const handleListUser = async (ctx: Context) => {
    }
 };
 
-export const handleHelper = (ctx: Context) => {
-   ctx.reply(messages.about, { parse_mode: "Markdown" });
+export const handleHelper = async (ctx: Context) => {
+   const totalUsers = await getTotalUsers();
+   const reviews = await getRecentReviews(1);
+   await ctx.reply(messages.about(totalUsers, reviews.length > 0), { parse_mode: "Markdown" });
 }
 
 export const handleGuide = (ctx: Context) => {

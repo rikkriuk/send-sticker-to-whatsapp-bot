@@ -62,6 +62,26 @@ const UserSchema: Schema = new Schema(
       type: Boolean,
       default: true,
     },
+    hasReviewed: {
+      type: Boolean,
+      default: false,
+    },
+    reviewText: {
+      type: String,
+      default: "",
+    },
+    reviewSubmittedAt: {
+      type: Date,
+      default: null,
+    },
+    reviewUpdatedAt: {
+      type: Date,
+      default: null,
+    },
+    reviewRewardGranted: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

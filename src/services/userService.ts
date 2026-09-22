@@ -215,6 +215,48 @@ export const getAIConfig = async () => {
    };
 };
 
+export const submitUserReview = async (telegramId: number, text: string) => {
+   const user = await User.findOne({ telegramId });
+   if (!user) return null;
+
+   const cleaned = text.trim();
+   if (!cleaned) return { success: false, reason: "empty" };
+   if (user.hasReviewed) {
+      return { success: false, reason: "already_reviewed" };
+   }
+
+   user.hasReviewed = true;
+   user.reviewText = cleaned;
+   user.reviewSubmittedAt = new Date();
+   user.reviewUpdatedAt = new Date();
+   user.reviewRewardGranted = true;
+   user.stickerLimit = (user.stickerLimit ?? 10) + 10;
+
+   await user.save();
+   return { success: true, rewardGranted: true, user };
+};
+
+export const updateUserReview = async (telegramId: number, text: string) => {
+   const user = await User.findOne({ telegramId });
+   if (!user) return null;
+
+   const cleaned = text.trim();
+   if (!cleaned) return { success: false, reason: "empty" };
+
+   user.reviewText = cleaned;
+   user.reviewUpdatedAt = new Date();
+   await user.save();
+
+   return { success: true, user };
+};
+
+export const getRecentReviews = async (limit: number = 10) => {
+   return await User.find({ hasReviewed: true, reviewText: { $exists: true, $ne: "" } })
+      .sort({ reviewUpdatedAt: -1, reviewSubmittedAt: -1 })
+      .limit(limit)
+      .select("name userName reviewText reviewUpdatedAt reviewSubmittedAt");
+};
+
 export const toggleTelegramAI = async (telegramId: number) => {
    const user = await User.findOne({ telegramId });
    if (!user) return null;

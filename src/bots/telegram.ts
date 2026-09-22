@@ -19,6 +19,8 @@ import {
    handleLeaderboard,
    handleAISettings,
    handleAIToggle,
+   handleReviewCommand,
+   handleReviewsList,
 } from "../helpers/telegramHelper";
 import { adminOnly } from "../middleware/adminMiddleware";
 
@@ -28,6 +30,8 @@ bot.start((ctx) => handleStart(ctx));
 bot.command("profile", (ctx) => handleProfile(ctx));
 bot.command("help", (ctx) => handleHelper(ctx));
 bot.command("guide", (ctx) => handleGuide(ctx));
+bot.command("review", (ctx) => handleReviewCommand(ctx));
+bot.command("list-review", (ctx) => handleReviewsList(ctx));
 bot.command("invite", (ctx) => handleInvite(ctx));
 bot.command("leaderboard", (ctx) => handleLeaderboard(ctx));
 bot.command("ai", adminOnly, (ctx) => handleAISettings(ctx));

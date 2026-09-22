@@ -108,8 +108,8 @@ export async function askAI(
 
   const systemPrompt = basePrompt + identityNote;
 
-  const fallback = platform === "whatsapp"
-    ? "Maaf, asisten sedang tidak tersedia. Kirim foto dengan caption .sticker untuk membuat stiker."
+  const fallback = platform === "whatsapp" 
+    ? "" 
     : "Maaf, asisten sedang tidak tersedia. Ketik /start untuk mulai.";
 
   const apiKey = process.env.AI_API_KEY;

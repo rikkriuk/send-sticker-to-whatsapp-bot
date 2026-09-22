@@ -1,4 +1,5 @@
 export const ADMIN_TELEGRAM_USERNAME = process.env.ADMIN_USERNAME || "rikkriuk";
+export const ADMIN_NAME = process.env.ADMIN_NAME || "Admin";
 export const ADMIN_TELEGRAM_ID = parseInt(process.env.ADMIN_TELEGRAM_ID || "");
 
 export const USER_COMMANDS = [
@@ -17,6 +18,14 @@ export const USER_COMMANDS = [
    {
       command: "leaderboard",
       description: "🏆 Top referral"
+   },
+   {
+      command: "review",
+      description: "⭐ Review bot"
+   },
+   {
+      command: "list-review",
+      description: "📜 Lihat semua review"
    },
 ];
 
@@ -49,6 +58,10 @@ export const ADMIN_COMMANDS = [
    {
       command: "ai",
       description: "🤖 Pengaturan AI asisten",
+   },
+   {
+      command: "list-review",
+      description: "📜 Lihat semua review",
    },
 ];
 
