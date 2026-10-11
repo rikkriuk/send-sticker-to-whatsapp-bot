@@ -5,6 +5,7 @@ import messages from "../constants/messages";
 import { StickerData } from "../types/sticker.type";
 import { addStickerMetadata } from "./stickerExif";
 import { removePlusInNumber } from "./phoneValidate";
+import { DEFAULT_STICKER_PACK_NAME, PREMIUM_MAX_WHATSAPP_NUMBERS } from "../constants/businessConfig";
 
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 jam
 const lastSenderCache = new Map<string, { telegramId: number; ts: number }>();
@@ -20,36 +21,46 @@ setInterval(() => {
 export const sendStickerToWhatsApp = async (stickerData: StickerData, ctx: Context) => {
    const { filePath, mimeType, user } = stickerData;
    const { telegramId, name, userName, whatsappNumber } = user;
-   const userNumber = `${removePlusInNumber(whatsappNumber || "")}@s.whatsapp.net`;
+   const isPremium = user.isPremium && (!user.premiumExpiredAt || user.premiumExpiredAt.getTime() > Date.now());
+   const numbers = user.whatsappNumbers?.length
+      ? user.whatsappNumbers
+      : whatsappNumber ? [whatsappNumber] : [];
+   const recipientNumbers = (isPremium ? numbers : numbers.slice(0, 1))
+      .slice(0, PREMIUM_MAX_WHATSAPP_NUMBERS);
+   if (recipientNumbers.length === 0) {
+      throw new Error(`No WhatsApp recipient configured for Telegram user ${telegramId}`);
+   }
 
    try {
       const mediaBuffer = await fs.promises.readFile(filePath);
 
-      const cached = lastSenderCache.get(userNumber);
-      const now = Date.now();
-      if (!cached || cached.telegramId !== telegramId || now - cached.ts > CACHE_TTL) {
-         const lines = [
-            "🎁 *Stiker dari Telegram*",
-            "",
-            "👤 *Pengirim:*",
-            `├ Nama: ${name}`,
-            `├ Username: ${userName ? "@" + userName : "-"}`,
-            `└ Id Telegram: ${telegramId}`,
-         ];
-
-         await client.sendMessage(userNumber, {
-            text: lines.join("\n"),
-         });
-         lastSenderCache.set(userNumber, { telegramId, ts: now });
-      }
-
       const stickerBuffer = await addStickerMetadata(
          mediaBuffer,
-         "Sticker",
+         isPremium && user.stickerPackName ? user.stickerPackName : DEFAULT_STICKER_PACK_NAME,
          `Created by @SendStickerBot (${userName ? "@" + userName : name})`
       );
 
-      await client.sendMessage(userNumber, { sticker: stickerBuffer });
+      for (const number of recipientNumbers) {
+         const userNumber = `${removePlusInNumber(number)}@s.whatsapp.net`;
+         const cached = lastSenderCache.get(userNumber);
+         const now = Date.now();
+         if (!cached || cached.telegramId !== telegramId || now - cached.ts > CACHE_TTL) {
+            const lines = [
+               "🎁 *Stiker dari Telegram*",
+               "",
+               "👤 *Pengirim:*",
+               `├ Nama: ${name}`,
+               `├ Username: ${userName ? "@" + userName : "-"}`,
+               `└ Id Telegram: ${telegramId}`,
+            ];
+
+            await client.sendMessage(userNumber, {
+               text: lines.join("\n"),
+            });
+            lastSenderCache.set(userNumber, { telegramId, ts: now });
+         }
+         await client.sendMessage(userNumber, { sticker: stickerBuffer });
+      }
       ctx.reply(messages.success, { parse_mode: "Markdown" });
    } catch (error) {
       console.log("Gagal mengirim stiker ke whatsapp");

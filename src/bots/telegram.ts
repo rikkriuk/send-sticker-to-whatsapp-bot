@@ -21,6 +21,11 @@ import {
    handleAIToggle,
    handleReviewCommand,
    handleReviewsList,
+   handleWhatsappNumbers,
+   handleStickerName,
+   handleQrisCommand,
+   handleQrisPhoto,
+   handleDeleteQrisCommand,
 } from "../helpers/telegramHelper";
 import { adminOnly } from "../middleware/adminMiddleware";
 import { getUser } from "../services/userService";
@@ -31,6 +36,10 @@ export const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN as string);
 
 bot.start((ctx) => handleStart(ctx));
 bot.command("profile", (ctx) => handleProfile(ctx));
+bot.command("numbers", (ctx) => handleWhatsappNumbers(ctx));
+bot.command("stickername", (ctx) => handleStickerName(ctx));
+bot.command("setqris", (ctx) => handleQrisCommand(ctx));
+bot.command("deleteqris", (ctx) => handleDeleteQrisCommand(ctx));
 bot.command("help", (ctx) => handleHelper(ctx));
 bot.command("guide", (ctx) => handleGuide(ctx));
 bot.command("review", (ctx) => handleReviewCommand(ctx));
@@ -70,6 +79,7 @@ bot.action(/^ai_toggle_(telegram|wa)$/, adminOnly, (ctx) => handleAIToggle(ctx))
 
 bot.hears("hi", (ctx) => hears(ctx));
 bot.on("text", (ctx) => handleTextMessage(ctx));
+bot.on("photo", (ctx) => handleQrisPhoto(ctx));
 bot.on("sticker", (ctx) => handleStickerMessage(ctx));
 
 bot.catch((err, ctx) => {

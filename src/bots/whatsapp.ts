@@ -8,8 +8,10 @@ import { addStickerMetadata, makeBackgroundTransparent } from "../helpers/sticke
 import qrcode from "qrcode-terminal";
 import whatsappEmitter from "../events/eventEmitter";
 import { Boom } from "@hapi/boom";
-import { getUserByWhatsappNumber, getAIConfig } from "../services/userService";
+import { getUserByWhatsappNumber, getAIConfig, checkAndResetPremium } from "../services/userService";
 import { askAI } from "../services/aiService";
+import { getBusinessQris } from "../services/businessConfigService";
+import { DEFAULT_STICKER_PACK_NAME, QRIS_IMAGE_CAPTION } from "../constants/businessConfig";
 
 let sock: ReturnType<typeof makeWASocket>;
 
@@ -54,7 +56,7 @@ const connectToWhatsApp = async () => {
     try {
       const messages = m.messages;
       for (const msg of messages) {
-        if (!msg.message || msg.key.fromMe) continue;
+        if (!msg.message) continue;
 
         const jid = msg.key.remoteJid as string;
 
@@ -67,6 +69,38 @@ const connectToWhatsApp = async () => {
         if (resolvedJid.endsWith("@lid")) continue;
 
         const message = msg.message;
+
+        if (msg.key.fromMe) {
+          const text =
+            (message.conversation as string) ||
+            (message.extendedTextMessage?.text as string) ||
+            "";
+          const configuredAdminNumber = (process.env.ADMIN_WHATSAPP || "")
+            .replace(/\D/g, "")
+            .replace(/^0/, "62");
+          const ownNumber = (sock.user?.id || "").split(":")[0].split("@")[0];
+
+          if (
+            text.trim().toLowerCase() === "qris" &&
+            configuredAdminNumber &&
+            configuredAdminNumber === ownNumber
+          ) {
+            const qrisImage = await getBusinessQris();
+            if (!qrisImage) {
+              console.warn("QRIS belum didaftarkan melalui Telegram superadmin.");
+              await sock.sendMessage(resolvedJid, {
+                text: "QRIS bisnis belum tersedia. Daftarkan gambar melalui Telegram dengan /setqris.",
+              });
+            } else {
+              await sock.sendMessage(resolvedJid, {
+                image: qrisImage,
+                caption: QRIS_IMAGE_CAPTION,
+              });
+            }
+          }
+          continue;
+        }
+
         const imageMsg =
           (message as any).imageMessage || (message as any).documentMessage;
 
@@ -94,9 +128,14 @@ const connectToWhatsApp = async () => {
               }
             }
 
+            const phoneNumber = resolvedJid.replace("@s.whatsapp.net", "");
+            const stickerUser = await getUserByWhatsappNumber(phoneNumber);
+            const isPremium = stickerUser ? await checkAndResetPremium(stickerUser) : false;
             const stickerBuffer = await addStickerMetadata(
               buffer,
-              "Sticker",
+              isPremium && stickerUser?.stickerPackName
+                ? stickerUser.stickerPackName
+                : DEFAULT_STICKER_PACK_NAME,
               "Created by @SendStickerBot (WhatsApp)"
             );
 

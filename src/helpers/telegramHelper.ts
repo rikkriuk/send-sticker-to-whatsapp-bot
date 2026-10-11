@@ -1,5 +1,6 @@
 import { Context } from "telegraf";
 import { Message } from "telegraf/types";
+import axios from "axios";
 import {
    checkAndResetPremium,
    decrementStickerLimit,
@@ -26,7 +27,10 @@ import {
    submitUserReview,
    updateUserReview,
    getRecentReviews,
+   setWhatsappNumbers,
+   setStickerPackName,
 } from "../services/userService";
+import { deleteBusinessQris, saveBusinessQris } from "../services/businessConfigService";
 import messages from "../constants/messages";
 import { isValidWhatsAppNumber, looksLikePhoneNumber } from "./phoneValidate";
 import { getFileUrl } from "./fileHelper";
@@ -35,9 +39,19 @@ import fs from "fs";
 import { formattedDate } from "./formattedDate";
 import whatsappEmitter from "../events/eventEmitter";
 import { setCommandsForUser } from "../middleware/adminMiddleware";
-import { ADMIN_TELEGRAM_ID, ADMIN_TELEGRAM_USERNAME, ROLES } from "../constants/roles";
+import { ADMIN_TELEGRAM_ID, ADMIN_TELEGRAM_USERNAME, isSuperAdmin, ROLES } from "../constants/roles";
 import { getTimeUntilReset } from "./time";
 import { askAI } from "../services/aiService";
+import {
+   PREMIUM_MAX_WHATSAPP_NUMBERS,
+   REFERRAL_PREMIUM_MONTHS,
+   REFERRALS_PER_PREMIUM,
+   REFERRAL_STICKER_LIMIT_BONUS,
+   REVIEW_STICKER_LIMIT_BONUS,
+   PREMIUM_PRICE_LABEL,
+   DEFAULT_STICKER_PACK_NAME,
+   STICKER_PACK_NAME_MAX_LENGTH,
+} from "../constants/businessConfig";
 
 let isClientReady: boolean = false;
 const pendingReviewUsers = new Set<number>();
@@ -66,13 +80,13 @@ export const handleStart = async (ctx: Context) => {
       ? parseInt(startPayload.replace("ref_", ""))
       : undefined;
 
-   const { user, isNewUser } = await saveOrUpateUser(ctx.chat, referredBy);
+   const { user, isNewUser, referralRewardGranted } = await saveOrUpateUser(ctx.chat, referredBy);
 
    if (isNewUser && referredBy) {
       try {
          await ctx.telegram.sendMessage(
             referredBy,
-            `🎉 *Teman kamu berhasil join!*\n\n👤 ${escapeMarkdown(ctx.chat.first_name ?? '')} menggunakan link invite kamu.\n✅ Limit sticker kamu bertambah *+15*!`,
+            `🎉 *Teman kamu berhasil join!*\n\n👤 ${escapeMarkdown(ctx.chat.first_name ?? '')} menggunakan link invite kamu.\n✅ Limit sticker kamu bertambah *+${REFERRAL_STICKER_LIMIT_BONUS}*!${referralRewardGranted ? `\n⭐ Kamu mendapat Premium gratis ${REFERRAL_PREMIUM_MONTHS} bulan karena mencapai ${REFERRALS_PER_PREMIUM} referral!` : ""}`,
             { parse_mode: "Markdown" }
          );
       } catch (_) {}
@@ -110,6 +124,123 @@ export const handleStart = async (ctx: Context) => {
    // }
    // await ctx.reply(messages.notes, { parse_mode: "Markdown" });
    await ctx.reply(messages.sendSticker, { parse_mode: "Markdown" });
+};
+
+export const handleWhatsappNumbers = async (ctx: Context) => {
+   if (!ctx.message || !isTextMessage(ctx.message) || !ctx.chat) return;
+
+   const user = await getUser(ctx.chat.id);
+   if (!user || !(await checkAndResetPremium(user))) {
+      await ctx.reply("Fitur ini khusus pengguna Premium. Nomor utama tetap bisa diatur dengan mengirim nomor WhatsApp di chat.", { parse_mode: "Markdown" });
+      return;
+   }
+
+   const commandText = ctx.message.text.replace(/^\/numbers(?:@\S+)?/i, "").trim();
+   if (!commandText) {
+      const numbers = user.whatsappNumbers?.length
+         ? user.whatsappNumbers
+         : user.whatsappNumber ? [user.whatsappNumber] : [];
+      await ctx.reply(
+         `Nomor penerima Premium saat ini:\n${numbers.map((number, index) => `${index + 1}. +${number}`).join("\n") || "Belum ada nomor"}\n\nAtur maksimal ${PREMIUM_MAX_WHATSAPP_NUMBERS} nomor dengan /numbers <nomor utama> [nomor kedua]. Contoh: /numbers 081234567890 081234567891`
+      );
+      return;
+   }
+
+   const inputNumbers = commandText.split(/[,\s]+/).filter(Boolean);
+   if (inputNumbers.length === 0 || inputNumbers.length > PREMIUM_MAX_WHATSAPP_NUMBERS) {
+      await ctx.reply(`Maksimal ${PREMIUM_MAX_WHATSAPP_NUMBERS} nomor. Format: /numbers <nomor utama> [nomor kedua]`);
+      return;
+   }
+
+   const numbers: string[] = [];
+   for (const inputNumber of inputNumbers) {
+      const number = isValidWhatsAppNumber(inputNumber);
+      if (!number) {
+         await ctx.reply("Nomor tidak valid atau ada nomor duplikat. Contoh: /numbers 081234567890 081234567891");
+         return;
+      }
+      numbers.push(number);
+   }
+
+   if (new Set(numbers).size !== numbers.length) {
+      await ctx.reply("Nomor tidak valid atau ada nomor duplikat. Contoh: /numbers 081234567890 081234567891");
+      return;
+   }
+
+   await setWhatsappNumbers(user.telegramId, numbers);
+   await ctx.reply(`Nomor WhatsApp berhasil disimpan:\n${numbers.map((number, index) => `${index + 1}. +${number}`).join("\n")}`);
+};
+
+export const handleStickerName = async (ctx: Context) => {
+   if (!ctx.message || !isTextMessage(ctx.message) || !ctx.chat) return;
+
+   const user = await getUser(ctx.chat.id);
+   if (!user || !(await checkAndResetPremium(user))) {
+      await ctx.reply("Nama pack stiker khusus pengguna Premium.");
+      return;
+   }
+
+   const packName = ctx.message.text.replace(/^\/stickername(?:@\S+)?/i, "").trim();
+   if (!packName) {
+      await ctx.reply(`Nama pack stiker saat ini: ${user.stickerPackName || DEFAULT_STICKER_PACK_NAME}\nUbah dengan /stickername <nama>. Gunakan /stickername reset untuk kembali ke default.`);
+      return;
+   }
+
+   if (packName.toLowerCase() === "reset") {
+      await setStickerPackName(user.telegramId, "");
+      await ctx.reply("Nama pack stiker dikembalikan ke default.");
+      return;
+   }
+
+   if (packName.length > STICKER_PACK_NAME_MAX_LENGTH || /[\r\n]/.test(packName)) {
+      await ctx.reply(`Nama pack maksimal ${STICKER_PACK_NAME_MAX_LENGTH} karakter dan harus satu baris.`);
+      return;
+   }
+
+   await setStickerPackName(user.telegramId, packName);
+   await ctx.reply(`Nama pack stiker berhasil diubah menjadi: ${packName}`);
+};
+
+export const handleQrisCommand = async (ctx: Context) => {
+   if (!isSuperAdmin(ctx.from?.id)) {
+      await ctx.reply(messages.inValidCommand, { parse_mode: "Markdown" });
+      return;
+   }
+   await ctx.reply("Kirim gambar QRIS dengan caption /setqris untuk menyimpan atau mengganti QRIS bisnis.");
+};
+
+export const handleQrisPhoto = async (ctx: Context) => {
+   if (!ctx.message || !("photo" in ctx.message)) return;
+   const caption = "caption" in ctx.message ? ctx.message.caption : undefined;
+   if (!caption || !/^\/setqris(?:@\w+)?$/i.test(caption.trim())) return;
+
+   if (!isSuperAdmin(ctx.from?.id) || ctx.chat?.type !== "private") {
+      await ctx.reply(messages.inValidCommand, { parse_mode: "Markdown" });
+      return;
+   }
+
+   try {
+      const photo = ctx.message.photo[ctx.message.photo.length - 1];
+      const fileUrl = await ctx.telegram.getFileLink(photo.file_id);
+      const response = await axios.get<ArrayBuffer>(fileUrl.href, { responseType: "arraybuffer" });
+      const image = Buffer.from(response.data);
+      if (!image.length) throw new Error("QRIS image is empty");
+
+      await saveBusinessQris(image);
+      await ctx.reply("Gambar QRIS bisnis berhasil disimpan.");
+   } catch (error) {
+      console.error("Gagal menyimpan gambar QRIS:", error);
+      await ctx.reply("Gagal menyimpan gambar QRIS. Coba kirim ulang fotonya.");
+   }
+};
+
+export const handleDeleteQrisCommand = async (ctx: Context) => {
+   if (!isSuperAdmin(ctx.from?.id)) {
+      await ctx.reply(messages.inValidCommand, { parse_mode: "Markdown" });
+      return;
+   }
+   await deleteBusinessQris();
+   await ctx.reply("Gambar QRIS bisnis berhasil dihapus.");
 };
 
 export const handleReviewCommand = async (ctx: Context) => {
@@ -242,7 +373,7 @@ export const handleTextMessage = async (ctx: Context) => {
             "",
             `*${escapeMarkdown(user.name || "User")}* ${user.isPremium ? "⭐" : ""}`,
             `├ Username: ${user.userName ? `@${escapeMarkdown(user.userName)}` : "-"}`,
-            `├ Reward: +10 limit sticker`,
+            `├ Reward: +${REVIEW_STICKER_LIMIT_BONUS} limit sticker`,
             `├ Review: ${escapeMarkdown(text)}`,
             `└ Telegram ID: [${user.telegramId}](tg://user?id=${user.telegramId})`,
          ].join("\n");
@@ -342,11 +473,11 @@ export const handleStickerMessage = async (ctx: Context) => {
       const buttons: any[] = [];
 
       if (!user.hasReviewed) {
-         buttons.push([{ text: "⭐ Kasih Ulasan Bot (+10 limit)", callback_data: "review_prompt" }]);
+         buttons.push([{ text: `⭐ Kasih Ulasan Bot (+${REVIEW_STICKER_LIMIT_BONUS} limit)`, callback_data: "review_prompt" }]);
       }
 
-      buttons.push([{ text: "👥 Undang Teman (+15 limit)", callback_data: "get_invite_link" }]);
-      buttons.push([{ text: "⭐ Upgrade Premium (unlimited) - 5K", url: `https://t.me/${ADMIN_TELEGRAM_USERNAME}` }]);
+      buttons.push([{ text: `👥 Undang Teman (+${REFERRAL_STICKER_LIMIT_BONUS} limit)`, callback_data: "get_invite_link" }]);
+      buttons.push([{ text: `⭐ Upgrade Premium (unlimited) - ${PREMIUM_PRICE_LABEL}`, url: `https://t.me/${ADMIN_TELEGRAM_USERNAME}` }]);
 
       return ctx.reply(
          messages.stickerLimit(getTimeUntilReset(user.stickerLimitResetAt ?? user.createdAt)),
@@ -436,6 +567,8 @@ export const handleProfile = async (ctx: Context) => {
 ├ Role: ${user.role}
 ├ Username: ${user.userName ? `@${escapeMarkdown(user.userName)}` : "-"}
 ├ WhatsApp: ${user.whatsappNumber ? '+' + `\`${user.whatsappNumber}\`` : '-'}
+├ Nomor WhatsApp kedua: ${user.whatsappNumbers?.[1] ? `+\`${user.whatsappNumbers[1]}\`` : "-"}
+├ Nama Pack Stiker: ${user.stickerPackName || DEFAULT_STICKER_PACK_NAME}
 ├ Sticker Limit: ${user.stickerLimit}
 ├ Status Akun: ${premiumStatus}
 ├ Proses: ${user.isProcessing ? "Sedang diproses" : "Tidak diproses"}
@@ -825,7 +958,7 @@ export const handleInvite = async (ctx: Context) => {
 
    await ctx.reply(`🔗 *Link Undangan Kamu:*`, { parse_mode: "Markdown" });
    await ctx.reply(inviteLink);
-   await ctx.reply(`📢 Salin dan bagikan link di atas ke teman kamu!\nSetiap teman yang join, kamu dapat *+15 limit sticker* otomatis.`, { parse_mode: "Markdown" });
+   await ctx.reply(`📢 Salin dan bagikan link di atas ke teman kamu!\nSetiap teman yang join, kamu dapat *+${REFERRAL_STICKER_LIMIT_BONUS} limit sticker*. Setiap ${REFERRALS_PER_PREMIUM} referral, kamu juga mendapat *Premium gratis ${REFERRAL_PREMIUM_MONTHS} bulan*.`, { parse_mode: "Markdown" });
 };
 
 export const handleLeaderboard = async (ctx: Context) => {
@@ -848,7 +981,7 @@ export const handleLeaderboard = async (ctx: Context) => {
       "🏆 *Top Referral*\n",
       rows.join("\n"),
       "",
-      "_Undang teman lewat /invite dan dapatkan +15 limit per teman!_",
+      `_Undang teman lewat /invite: +${REFERRAL_STICKER_LIMIT_BONUS} limit per teman dan Premium gratis ${REFERRAL_PREMIUM_MONTHS} bulan setiap ${REFERRALS_PER_PREMIUM} referral!_`,
    ].join("\n");
 
    ctx.reply(message, { parse_mode: "Markdown" });

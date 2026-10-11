@@ -1,5 +1,6 @@
 import mongoose, { Schema, Document } from "mongoose";
 import { IUser } from "../types/userModel.type";
+import { DEFAULT_DAILY_STICKER_LIMIT } from "../constants/businessConfig";
 
 const UserSchema: Schema = new Schema(
   {
@@ -20,9 +21,17 @@ const UserSchema: Schema = new Schema(
       type: String,
       required: false,
     },
+    whatsappNumbers: {
+      type: [String],
+      default: [],
+    },
+    stickerPackName: {
+      type: String,
+      default: "",
+    },
     stickerLimit: {
       type: Number,
-      default: 10,
+      default: DEFAULT_DAILY_STICKER_LIMIT,
     },
     isProcessing: {
       type: Boolean,

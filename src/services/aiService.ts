@@ -1,3 +1,5 @@
+import { REFERRAL_STICKER_LIMIT_BONUS } from "../constants/businessConfig";
+
 export type AIPlatform = "telegram" | "whatsapp";
 
 interface UserContext {
@@ -33,7 +35,7 @@ Keduanya adalah satu layanan yang sama. Akun dibuat di Telegram, nomor WA didaft
 Perintah yang tersedia:
 /start       - Mulai bot, daftar akun baru, atau lihat ringkasan
 /profile     - Lihat profil: sisa limit, status premium, nomor WA terdaftar
-/invite      - Dapatkan link referral (ajak teman = +15 limit)
+/invite      - Dapatkan link referral (ajak teman = +${REFERRAL_STICKER_LIMIT_BONUS} limit)
 /leaderboard - Lihat top referral
 
 Kamu (Alisa) adalah pusat bantuan dan panduan. Sudah TIDAK ADA perintah /help atau /guide lagi — jika pengguna bertanya "cara pakai bot", "gimana cara daftar", "bot ini apa", dsb, kamu yang jawab langsung dengan panduan berikut:

@@ -1,6 +1,10 @@
+import { REFERRAL_STICKER_LIMIT_BONUS } from "./businessConfig";
+
 export const ADMIN_TELEGRAM_USERNAME = process.env.ADMIN_USERNAME || "rikkriuk";
 export const ADMIN_NAME = process.env.ADMIN_NAME || "Admin";
 export const ADMIN_TELEGRAM_ID = parseInt(process.env.ADMIN_TELEGRAM_ID || "");
+export const isSuperAdmin = (telegramId?: number) =>
+   Number.isFinite(ADMIN_TELEGRAM_ID) && telegramId === ADMIN_TELEGRAM_ID;
 
 export const USER_COMMANDS = [
    { 
@@ -13,7 +17,7 @@ export const USER_COMMANDS = [
    },
    {
       command: "invite",
-      description: "🎁 Dapatkan 15+ limit gratis"
+      description: `🎁 Referral: +${REFERRAL_STICKER_LIMIT_BONUS} limit`
    },
    {
       command: "leaderboard",
@@ -22,6 +26,14 @@ export const USER_COMMANDS = [
    {
       command: "review",
       description: "⭐ Kasih ulasan bot"
+   },
+   {
+      command: "numbers",
+      description: "📱 Atur nomor WhatsApp (premium)"
+   },
+   {
+      command: "stickername",
+      description: "🏷️ Atur nama pack stiker (premium)"
    },
    {
       command: "list_review",

@@ -8,6 +8,8 @@ export interface IUser extends Document {
   name: string;
   userName?: string;
   whatsappNumber?: string;
+  whatsappNumbers?: string[];
+  stickerPackName?: string;
   stickerLimit: number;
   isProcessing: boolean;
   role: UserRole;

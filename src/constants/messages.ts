@@ -1,4 +1,12 @@
 import { ADMIN_NAME, ADMIN_TELEGRAM_USERNAME } from "./roles";
+import {
+  DEFAULT_STICKER_PACK_NAME,
+  PREMIUM_MAX_WHATSAPP_NUMBERS,
+  REFERRAL_PREMIUM_MONTHS,
+  REFERRALS_PER_PREMIUM,
+  REFERRAL_STICKER_LIMIT_BONUS,
+  REVIEW_STICKER_LIMIT_BONUS,
+} from "./businessConfig";
 
 const messages = {
   hi: "Hallo, ",
@@ -18,7 +26,7 @@ const messages = {
     "_Nomor tidak valid, silahkan masukkan nomor yang benar! \n\nContoh: 085722710523_",
   validNumber: "_Nomor tersimpan📝 \nSilahkan kirim stiker!_",
   inValidNumber: "_Nomor WhatsApp tidak valid._",
-  sendSticker: "_Silahkan kirim stiker kamu!_",
+  sendSticker: `_Silahkan kirim stiker kamu! Pack default: ${DEFAULT_STICKER_PACK_NAME}._`,
   existedNumber:
     "_Silahkan kirim stiker!\n\nJika ingin memperbaharui nomor WhatsApp, cukup ketika nomornya. Contoh formatnya seperti ini: 081234567890_",
   inValidTextFormat: "_Harap kirimkan pesan dalam format teks._",
@@ -34,11 +42,11 @@ const messages = {
     "_Whatsapp belum diinisialisasi, mohon tunggu beberapa detik!_",
   inValidCommand: "_Command tidak dikenali \n/help_",
   reviewPrompt:
-    "_Kirim review kamu di chat ini. Review pertama akan mendapat +10 limit sticker._",
+    `_Kirim review kamu di chat ini. Review pertama akan mendapat +${REVIEW_STICKER_LIMIT_BONUS} limit sticker._`,
   reviewUpdated:
     "_Review kamu berhasil diperbarui. Reward tidak akan ditambah lagi._",
   reviewSubmitted:
-    "_Terima kasih! Review kamu sudah diterima.\n\n+10 limit sticker berhasil ditambahkan._",
+    `_Terima kasih! Review kamu sudah diterima.\n\n+${REVIEW_STICKER_LIMIT_BONUS} limit sticker berhasil ditambahkan._`,
   reviewAlreadyExists:
     "_Kamu sudah pernah mengirim review. Kamu masih bisa memperbarui review yang ada, tapi reward tidak akan ditambah lagi._",
   reviewsEmpty: "_Belum ada ulasan yang dikirim._",
@@ -47,6 +55,7 @@ const messages = {
     "1. Klik /start untuk memulai.\n" +
     "2. Setelah itu, masukkan nomor WhatsApp yang valid, contoh formatnya seperti ini: 081234567890\n" +
     "3. Setelah nomor terverifikasi, kirimkan stiker untuk melanjutkan proses.\n\n_" +
+    `_Pengguna Premium dapat mengatur hingga ${PREMIUM_MAX_WHATSAPP_NUMBERS} nomor penerima lewat /numbers dan nama pack stiker lewat /stickername. Setiap ${REFERRALS_PER_PREMIUM} referral memberi Premium gratis ${REFERRAL_PREMIUM_MONTHS} bulan._\n\n_` +
     "_Catatan: Setiap pengguna memiliki batas untuk mengirimkan stiker per-hari, kamu bisa melihat informasinya di /profile.\n\n_" +
     `_Jika ada masalah atau pertanyaan, kamu bisa ketik /help atau chat @${ADMIN_TELEGRAM_USERNAME} untuk bantuan lebih lanjut._`,
   notes:

@@ -2,6 +2,13 @@ import mongoose from "mongoose";
 import { User } from "../models/User";
 import { UserChat } from "../types/userChat";
 import { IUser } from "../types/userModel.type";
+import {
+   REFERRALS_PER_PREMIUM,
+   REFERRAL_PREMIUM_MONTHS,
+   REFERRAL_STICKER_LIMIT_BONUS,
+   DEFAULT_DAILY_STICKER_LIMIT,
+   REVIEW_STICKER_LIMIT_BONUS,
+} from "../constants/businessConfig";
 
 export const getAllUsers = async () => {
    return await User.find({}, { telegramId: 1 });
@@ -12,6 +19,7 @@ export const saveOrUpateUser = async (chat: UserChat, referredBy?: number) => {
       const { id, first_name, username } = chat;
       let user = await User.findOne({ telegramId: id });
       let isNewUser = false;
+      let referralRewardGranted = false;
 
       if (!user) {
          isNewUser = true;
@@ -21,19 +29,66 @@ export const saveOrUpateUser = async (chat: UserChat, referredBy?: number) => {
             userName: username || "",
          });
 
-         if (referredBy && referredBy !== id) {
-            await User.findOneAndUpdate(
-               { telegramId: referredBy },
-               { $inc: { stickerLimit: 15, referralCount: 1 } }
-            );
-         }
       } else {
          user.name = first_name;
          user.userName = username || "";
       }
 
       await user.save();
-      return { user, isNewUser };
+
+      if (isNewUser && referredBy && referredBy !== id) {
+         const referrer = await User.findOneAndUpdate(
+            { telegramId: referredBy },
+            [
+               {
+                  $set: {
+                     stickerLimit: {
+                        $add: [
+                           { $ifNull: ["$stickerLimit", DEFAULT_DAILY_STICKER_LIMIT] },
+                           REFERRAL_STICKER_LIMIT_BONUS,
+                        ],
+                     },
+                     referralCount: { $add: [{ $ifNull: ["$referralCount", 0] }, 1] },
+                  },
+               },
+               {
+                  $set: {
+                     isPremium: {
+                        $cond: [
+                           { $eq: [{ $mod: ["$referralCount", REFERRALS_PER_PREMIUM] }, 0] },
+                           true,
+                           { $ifNull: ["$isPremium", false] },
+                        ],
+                     },
+                     premiumExpiredAt: {
+                        $cond: [
+                           { $eq: [{ $mod: ["$referralCount", REFERRALS_PER_PREMIUM] }, 0] },
+                           {
+                              $dateAdd: {
+                                 startDate: {
+                                    $max: [
+                                       { $ifNull: ["$premiumExpiredAt", new Date()] },
+                                       new Date(),
+                                    ],
+                                 },
+                                 unit: "month",
+                                 amount: REFERRAL_PREMIUM_MONTHS,
+                              },
+                           },
+                           { $ifNull: ["$premiumExpiredAt", null] },
+                        ],
+                     },
+                  },
+               },
+            ],
+            { new: true }
+         );
+         referralRewardGranted = Boolean(
+            referrer && referrer.referralCount % REFERRALS_PER_PREMIUM === 0
+         );
+      }
+
+      return { user, isNewUser, referralRewardGranted };
    } catch (error) {
       console.error("Error saat memperbaharui data user:", error);
       throw error;
@@ -46,6 +101,10 @@ export const savePhoneNumber = async (number: string, telegramId: number) => {
       if (user) {
          const previousNumber = user.whatsappNumber || null;
          user.whatsappNumber = number;
+         user.whatsappNumbers = [
+            number,
+            ...(user.whatsappNumbers || []).filter((savedNumber) => savedNumber !== number),
+         ].slice(0, 2);
          await user.save();
 
          return {
@@ -63,6 +122,24 @@ export const savePhoneNumber = async (number: string, telegramId: number) => {
       throw error;
    }
 }
+
+export const setWhatsappNumbers = async (telegramId: number, numbers: string[]) => {
+   const user = await User.findOne({ telegramId });
+   if (!user) return null;
+
+   user.whatsappNumber = numbers[0];
+   user.whatsappNumbers = numbers;
+   await user.save();
+   return user;
+};
+
+export const setStickerPackName = async (telegramId: number, packName: string) => {
+   return await User.findOneAndUpdate(
+      { telegramId },
+      { $set: { stickerPackName: packName } },
+      { new: true }
+   );
+};
 
 export const getUser = async (telegramId: number | undefined) => {
    try {
@@ -84,10 +161,10 @@ export const resetStickerLimitIfNeeded = async (user: any) => {
 
    if (now - lastReset >= oneDay) {
       await User.findByIdAndUpdate(user._id, { 
-         stickerLimit: 10, 
+         stickerLimit: DEFAULT_DAILY_STICKER_LIMIT,
          stickerLimitResetAt: new Date(),
       });
-      user.stickerLimit = 10;
+      user.stickerLimit = DEFAULT_DAILY_STICKER_LIMIT;
       user.stickerLimitResetAt = new Date();
    }
 };
@@ -121,7 +198,7 @@ export const updateLimit = async (telegramId: number | undefined, amount?: numbe
    if (telegramId) {
       const user = await User.findOneAndUpdate(
          { telegramId: telegramId },
-         { $set: { stickerLimit: amount || 10 } },
+         { $set: { stickerLimit: amount || DEFAULT_DAILY_STICKER_LIMIT } },
          { new: true }
       )
    
@@ -177,6 +254,8 @@ export const checkAndResetPremium = async (user: IUser) => {
       await User.findByIdAndUpdate(user._id, {
          $set: { isPremium: false, premiumExpiredAt: null }
       });
+      user.isPremium = false;
+      user.premiumExpiredAt = null;
       return false;
    }
    return user.isPremium;
@@ -202,7 +281,9 @@ export const getTopReferrers = async (limit: number = 10) => {
 };
 
 export const getUserByWhatsappNumber = async (whatsappNumber: string) => {
-   return await User.findOne({ whatsappNumber });
+   return await User.findOne({
+      $or: [{ whatsappNumber }, { whatsappNumbers: whatsappNumber }],
+   });
 };
 
 export const getAIConfig = async () => {
@@ -236,7 +317,7 @@ export const submitUserReview = async (telegramId: number, text: string) => {
             reviewRewardGranted: true,
          },
          $inc: {
-            stickerLimit: 10,
+            stickerLimit: REVIEW_STICKER_LIMIT_BONUS,
          },
       },
       { new: true }
