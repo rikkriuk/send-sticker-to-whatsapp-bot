@@ -5,7 +5,7 @@ import messages from "../constants/messages";
 import { StickerData } from "../types/sticker.type";
 import { addStickerMetadata } from "./stickerExif";
 import { removePlusInNumber } from "./phoneValidate";
-import { DEFAULT_STICKER_PACK_NAME, PREMIUM_MAX_WHATSAPP_NUMBERS } from "../constants/businessConfig";
+import { PREMIUM_MAX_WHATSAPP_NUMBERS, STICKER_PACK_NAME } from "../constants/businessConfig";
 import { checkAndResetPremium, getUser } from "../services/userService";
 
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 jam
@@ -39,15 +39,15 @@ export const sendStickerToWhatsApp = async (stickerData: StickerData, ctx: Conte
 
    try {
       const mediaBuffer = await fs.promises.readFile(filePath);
-      const packName = hasPremiumAccess && latestUser.stickerPackName
+      const stickerAuthor = hasPremiumAccess && latestUser.stickerPackName
          ? latestUser.stickerPackName
-         : DEFAULT_STICKER_PACK_NAME;
-      console.log(`Generating sticker metadata for user ${telegramId} with pack "${packName}".`);
+         : `Created by @SendStickerBot (${userName ? "@" + userName : name})`;
+      console.log(`Generating sticker metadata for user ${telegramId} with author "${stickerAuthor}".`);
 
       const stickerBuffer = await addStickerMetadata(
          mediaBuffer,
-         packName,
-         `Created by @SendStickerBot (${userName ? "@" + userName : name})`
+         STICKER_PACK_NAME,
+         stickerAuthor
       );
 
       for (const number of recipientNumbers) {

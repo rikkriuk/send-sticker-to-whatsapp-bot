@@ -3,7 +3,6 @@ import { User } from "../models/User";
 import { UserChat } from "../types/userChat";
 import { IUser } from "../types/userModel.type";
 import {
-   DEFAULT_STICKER_PACK_NAME,
    REFERRALS_PER_PREMIUM,
    REFERRAL_PREMIUM_MONTHS,
    REFERRAL_STICKER_LIMIT_BONUS,
@@ -138,7 +137,7 @@ export const setWhatsappNumbers = async (telegramId: number, numbers: string[]) 
 export const setStickerPackName = async (telegramId: number, packName: string) => {
    return await User.findOneAndUpdate(
       { telegramId },
-      { $set: { stickerPackName: packName || DEFAULT_STICKER_PACK_NAME } },
+      { $set: { stickerPackName: packName } },
       { new: true }
    );
 };

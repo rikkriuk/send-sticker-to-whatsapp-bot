@@ -26,7 +26,4 @@ export const STICKER_PACK_NAME_MAX_LENGTH = positiveIntegerFromEnv(
    "STICKER_PACK_NAME_MAX_LENGTH",
    30
 );
-export const DEFAULT_STICKER_PACK_NAME =
-   process.env.DEFAULT_STICKER_PACK_NAME?.trim() || "Sticker";
-export const QRIS_IMAGE_CAPTION =
-   process.env.QRIS_IMAGE_CAPTION?.trim() || "QRIS pembayaran";
+export const STICKER_PACK_NAME = "Sticker";

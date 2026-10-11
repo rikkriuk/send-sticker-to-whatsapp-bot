@@ -29,7 +29,7 @@ export const USER_COMMANDS = [
    },
    {
       command: "list_review",
-      description: "📜 Lihat ulasan (berhalaman)"
+      description: "📜 Lihat ulasan"
    },
 ];
 
@@ -41,7 +41,7 @@ export const PREMIUM_COMMANDS = [
    },
    {
       command: "stickername",
-      description: "🏷️ Atur nama pack stiker"
+      description: "🏷️ Atur nama pembuat stiker"
    },
 ];
 
@@ -84,11 +84,11 @@ export const SUPER_ADMIN_COMMANDS = [
    ...PREMIUM_COMMANDS.slice(USER_COMMANDS.length),
    {
       command: "setqris",
-      description: "🧾 Simpan gambar QRIS bisnis (superadmin)"
+      description: "🧾 Simpan gambar QRIS bisnis"
    },
    {
       command: "deleteqris",
-      description: "🗑️ Hapus gambar QRIS bisnis (superadmin)"
+      description: "🗑️ Hapus gambar QRIS bisnis"
    },
 ];
 

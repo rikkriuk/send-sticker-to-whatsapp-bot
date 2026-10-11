@@ -55,7 +55,6 @@ import {
    REFERRAL_STICKER_LIMIT_BONUS,
    REVIEW_STICKER_LIMIT_BONUS,
    PREMIUM_PRICE_LABEL,
-   DEFAULT_STICKER_PACK_NAME,
    STICKER_PACK_NAME_MAX_LENGTH,
 } from "../constants/businessConfig";
 
@@ -201,23 +200,23 @@ export const handleStickerName = async (ctx: Context) => {
 
    const packName = ctx.message.text.replace(/^\/stickername(?:@\S+)?/i, "").trim();
    if (!packName) {
-      await ctx.reply(`Nama pack stiker saat ini: ${user.stickerPackName || DEFAULT_STICKER_PACK_NAME}\nUbah dengan /stickername <nama>. Gunakan /stickername reset untuk kembali ke default.`);
+      await ctx.reply(`Nama pembuat stiker saat ini: ${user.stickerPackName || "Default bot"}\nUbah dengan /stickername <nama>. Gunakan /stickername reset untuk mengembalikan nama pembuat default.`);
       return;
    }
 
    if (packName.toLowerCase() === "reset") {
       await setStickerPackName(user.telegramId, "");
-      await ctx.reply("Nama pack stiker dikembalikan ke default.");
+      await ctx.reply("Nama pembuat stiker dikembalikan ke default.");
       return;
    }
 
    if (packName.length > STICKER_PACK_NAME_MAX_LENGTH || /[\r\n]/.test(packName)) {
-      await ctx.reply(`Nama pack maksimal ${STICKER_PACK_NAME_MAX_LENGTH} karakter dan harus satu baris.`);
+      await ctx.reply(`Nama pembuat stiker maksimal ${STICKER_PACK_NAME_MAX_LENGTH} karakter dan harus satu baris.`);
       return;
    }
 
    await setStickerPackName(user.telegramId, packName);
-   await ctx.reply(`Nama pack stiker berhasil diubah menjadi: ${packName}`);
+   await ctx.reply(`Nama pembuat stiker berhasil diubah menjadi: ${packName}`);
 };
 
 export const handleQrisCommand = async (ctx: Context) => {
@@ -625,7 +624,7 @@ export const handleProfile = async (ctx: Context) => {
 ├ Username: ${user.userName ? `@${escapeMarkdown(user.userName)}` : "-"}
 ├ WhatsApp: ${user.whatsappNumber ? '+' + `\`${user.whatsappNumber}\`` : '-'}
 ├ Nomor WhatsApp kedua: ${user.whatsappNumbers?.[1] ? `+\`${user.whatsappNumbers[1]}\`` : "-"}
-├ Nama Pack Stiker: ${user.stickerPackName || DEFAULT_STICKER_PACK_NAME}
+├ Nama Pembuat Stiker: ${user.stickerPackName || "Default bot"}
 ├ Sticker Limit: ${user.stickerLimit}
 ├ Status Akun: ${premiumStatus}
 ├ Proses: ${user.isProcessing ? "Sedang diproses" : "Tidak diproses"}

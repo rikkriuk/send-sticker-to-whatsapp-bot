@@ -1,6 +1,5 @@
 import { ADMIN_NAME, ADMIN_TELEGRAM_USERNAME } from "./roles";
 import {
-  DEFAULT_STICKER_PACK_NAME,
   PREMIUM_MAX_WHATSAPP_NUMBERS,
   REFERRAL_PREMIUM_MONTHS,
   REFERRALS_PER_PREMIUM,
@@ -26,7 +25,7 @@ const messages = {
     "_Nomor tidak valid, silahkan masukkan nomor yang benar! \n\nContoh: 085722710523_",
   validNumber: "_Nomor tersimpan📝 \nSilahkan kirim stiker!_",
   inValidNumber: "_Nomor WhatsApp tidak valid._",
-  sendSticker: `_Silahkan kirim stiker kamu! Pack default: ${DEFAULT_STICKER_PACK_NAME}._`,
+  sendSticker: "_Silahkan kirim stiker kamu!_",
   existedNumber:
     "_Silahkan kirim stiker!\n\nJika ingin memperbaharui nomor WhatsApp, cukup ketika nomornya. Contoh formatnya seperti ini: 081234567890_",
   inValidTextFormat: "_Harap kirimkan pesan dalam format teks._",

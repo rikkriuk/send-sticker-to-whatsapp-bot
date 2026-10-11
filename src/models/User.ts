@@ -1,9 +1,6 @@
 import mongoose, { Schema, Document } from "mongoose";
 import { IUser } from "../types/userModel.type";
-import {
-  DEFAULT_DAILY_STICKER_LIMIT,
-  DEFAULT_STICKER_PACK_NAME,
-} from "../constants/businessConfig";
+import { DEFAULT_DAILY_STICKER_LIMIT } from "../constants/businessConfig";
 
 const UserSchema: Schema = new Schema(
   {
@@ -30,7 +27,7 @@ const UserSchema: Schema = new Schema(
     },
     stickerPackName: {
       type: String,
-      default: DEFAULT_STICKER_PACK_NAME,
+      default: "",
     },
     stickerLimit: {
       type: Number,

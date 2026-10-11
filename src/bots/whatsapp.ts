@@ -11,7 +11,7 @@ import { Boom } from "@hapi/boom";
 import { getUserByWhatsappNumber, getAIConfig, checkAndResetPremium } from "../services/userService";
 import { askAI } from "../services/aiService";
 import { getBusinessQris } from "../services/businessConfigService";
-import { DEFAULT_STICKER_PACK_NAME, QRIS_IMAGE_CAPTION } from "../constants/businessConfig";
+import { STICKER_PACK_NAME } from "../constants/businessConfig";
 
 let sock: ReturnType<typeof makeWASocket>;
 
@@ -105,7 +105,7 @@ const connectToWhatsApp = async () => {
             } else {
               await sock.sendMessage(resolvedJid, {
                 image: qrisImage,
-                caption: QRIS_IMAGE_CAPTION,
+                caption: "QRIS pembayaran",
               });
               console.log(`Gambar QRIS bisnis terkirim ke ${resolvedJid}.`);
             }
@@ -147,12 +147,13 @@ const connectToWhatsApp = async () => {
             const hasPremiumAccess = stickerUser
               ? await checkAndResetPremium(stickerUser)
               : false;
+            const stickerAuthor = hasPremiumAccess && stickerUser?.stickerPackName
+              ? stickerUser.stickerPackName
+              : "Created by @SendStickerBot (WhatsApp)";
             const stickerBuffer = await addStickerMetadata(
               buffer,
-              hasPremiumAccess && stickerUser?.stickerPackName
-                ? stickerUser.stickerPackName
-                : DEFAULT_STICKER_PACK_NAME,
-              "Created by @SendStickerBot (WhatsApp)"
+              STICKER_PACK_NAME,
+              stickerAuthor
             );
 
             await sock.sendMessage(resolvedJid, { sticker: stickerBuffer });
