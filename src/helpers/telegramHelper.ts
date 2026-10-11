@@ -812,6 +812,7 @@ export const handlePremiumCommand = async (ctx: Context) => {
          "⭐ *Status & Paket Premium*",
          "",
          premiumStatus,
+         `💳 Harga: *${PREMIUM_PRICE_LABEL}/bulan*`,
          "",
          "*Manfaat Premium:*",
          ...benefits,
