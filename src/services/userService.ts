@@ -3,12 +3,14 @@ import { User } from "../models/User";
 import { UserChat } from "../types/userChat";
 import { IUser } from "../types/userModel.type";
 import {
+   DEFAULT_STICKER_PACK_NAME,
    REFERRALS_PER_PREMIUM,
    REFERRAL_PREMIUM_MONTHS,
    REFERRAL_STICKER_LIMIT_BONUS,
    DEFAULT_DAILY_STICKER_LIMIT,
    REVIEW_STICKER_LIMIT_BONUS,
 } from "../constants/businessConfig";
+import { isSuperAdmin } from "../constants/roles";
 
 export const getAllUsers = async () => {
    return await User.find({}, { telegramId: 1 });
@@ -136,7 +138,7 @@ export const setWhatsappNumbers = async (telegramId: number, numbers: string[]) 
 export const setStickerPackName = async (telegramId: number, packName: string) => {
    return await User.findOneAndUpdate(
       { telegramId },
-      { $set: { stickerPackName: packName } },
+      { $set: { stickerPackName: packName || DEFAULT_STICKER_PACK_NAME } },
       { new: true }
    );
 };
@@ -250,6 +252,8 @@ export const setPremium = async (telegramId: number, days: number) => {
 };
 
 export const checkAndResetPremium = async (user: IUser) => {
+   if (isSuperAdmin(user.telegramId)) return true;
+
    if (user.isPremium && user.premiumExpiredAt && new Date() > user.premiumExpiredAt) {
       await User.findByIdAndUpdate(user._id, {
          $set: { isPremium: false, premiumExpiredAt: null }

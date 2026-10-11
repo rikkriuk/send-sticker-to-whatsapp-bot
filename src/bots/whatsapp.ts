@@ -15,15 +15,23 @@ import { DEFAULT_STICKER_PACK_NAME, QRIS_IMAGE_CAPTION } from "../constants/busi
 
 let sock: ReturnType<typeof makeWASocket>;
 
-const normalizeWhatsAppNumber = (value?: string) => {
-  const number = (value || "").replace(/\D/g, "");
-  if (number.startsWith("0")) return `62${number.slice(1)}`;
-  if (number.startsWith("8")) return `62${number}`;
-  return number;
-};
+const getMessageText = (message: proto.IMessage | null | undefined): string => {
+  let currentMessage: any = message;
+  for (let depth = 0; currentMessage && depth < 5; depth += 1) {
+    const text =
+      currentMessage.conversation ||
+      currentMessage.extendedTextMessage?.text;
+    if (typeof text === "string") return text;
 
-const getPhoneNumberFromJid = (jid?: string) =>
-  jid?.split("@")[0].split(":")[0];
+    currentMessage =
+      currentMessage.ephemeralMessage?.message ||
+      currentMessage.viewOnceMessage?.message ||
+      currentMessage.viewOnceMessageV2?.message ||
+      currentMessage.documentWithCaptionMessage?.message ||
+      currentMessage.editedMessage?.message;
+  }
+  return "";
+};
 
 const connectToWhatsApp = async () => {
   const { state, saveCreds } = await useMultiFileAuthState("auth_info_baileys");
@@ -76,29 +84,18 @@ const connectToWhatsApp = async () => {
           ? ((msg.key as any).remoteJidAlt ?? jid)
           : jid;
 
-        if (resolvedJid.endsWith("@lid")) continue;
-
         const message = msg.message;
+        const messageText = getMessageText(message).trim();
+        const isQrisCommand = messageText.toLowerCase() === "qris";
+        if (isQrisCommand) {
+          console.log(
+            `QRIS message observed: type=${m.type}, fromMe=${Boolean(msg.key.fromMe)}, destination=${resolvedJid}.`
+          );
+        }
 
         if (msg.key.fromMe) {
-          const text =
-            (message.conversation as string) ||
-            (message.extendedTextMessage?.text as string) ||
-            "";
-          const configuredAdminNumber = normalizeWhatsAppNumber(process.env.ADMIN_WHATSAPP);
-          const ownNumber = normalizeWhatsAppNumber(
-            getPhoneNumberFromJid(sock.user?.phoneNumber) ||
-              getPhoneNumberFromJid(sock.user?.id)
-          );
-
-          if (text.trim().toLowerCase() === "qris") {
-            if (!configuredAdminNumber || !ownNumber || configuredAdminNumber !== ownNumber) {
-              console.warn(
-                "Perintah QRIS diabaikan: nomor ADMIN_WHATSAPP tidak cocok dengan nomor WhatsApp yang terhubung."
-              );
-              continue;
-            }
-
+          if (isQrisCommand) {
+            console.log(`Perintah QRIS terdeteksi untuk tujuan ${resolvedJid}.`);
             const qrisImage = await getBusinessQris();
             if (!qrisImage) {
               console.warn("QRIS belum didaftarkan melalui Telegram superadmin.");
@@ -115,6 +112,8 @@ const connectToWhatsApp = async () => {
           }
           continue;
         }
+
+        if (resolvedJid.endsWith("@lid")) continue;
 
         const imageMsg =
           (message as any).imageMessage || (message as any).documentMessage;
@@ -145,10 +144,12 @@ const connectToWhatsApp = async () => {
 
             const phoneNumber = resolvedJid.replace("@s.whatsapp.net", "");
             const stickerUser = await getUserByWhatsappNumber(phoneNumber);
-            const isPremium = stickerUser ? await checkAndResetPremium(stickerUser) : false;
+            const hasPremiumAccess = stickerUser
+              ? await checkAndResetPremium(stickerUser)
+              : false;
             const stickerBuffer = await addStickerMetadata(
               buffer,
-              isPremium && stickerUser?.stickerPackName
+              hasPremiumAccess && stickerUser?.stickerPackName
                 ? stickerUser.stickerPackName
                 : DEFAULT_STICKER_PACK_NAME,
               "Created by @SendStickerBot (WhatsApp)"

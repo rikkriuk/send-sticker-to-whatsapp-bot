@@ -145,9 +145,7 @@ export const handleWhatsappNumbers = async (ctx: Context) => {
    if (!ctx.message || !isTextMessage(ctx.message) || !ctx.chat) return;
 
    const user = await getUser(ctx.chat.id);
-   const hasFeatureAccess = user
-      ? isSuperAdmin(user.telegramId) || await checkAndResetPremium(user)
-      : false;
+   const hasFeatureAccess = user ? await checkAndResetPremium(user) : false;
    if (!user || !hasFeatureAccess) {
       if (user) await setCommandsForUser(user.telegramId, user.role, false);
       await ctx.reply("Fitur ini hanya tersedia untuk Premium.");
@@ -194,9 +192,7 @@ export const handleStickerName = async (ctx: Context) => {
    if (!ctx.message || !isTextMessage(ctx.message) || !ctx.chat) return;
 
    const user = await getUser(ctx.chat.id);
-   const hasFeatureAccess = user
-      ? isSuperAdmin(user.telegramId) || await checkAndResetPremium(user)
-      : false;
+   const hasFeatureAccess = user ? await checkAndResetPremium(user) : false;
    if (!user || !hasFeatureAccess) {
       if (user) await setCommandsForUser(user.telegramId, user.role, false);
       await ctx.reply("Fitur ini hanya tersedia untuk Premium.");
@@ -617,12 +613,14 @@ export const handleProfile = async (ctx: Context) => {
    const isPremium = await checkAndResetPremium(user);
    await setCommandsForUser(user.telegramId, user.role, isPremium);
    await resetStickerLimitIfNeeded(user);
-   const premiumStatus = isPremium && user.premiumExpiredAt
-      ? `⭐ Premium (exp: ${formattedDate(user.premiumExpiredAt)})`
+   const premiumStatus = isPremium
+      ? user.premiumExpiredAt
+         ? `⭐ Premium (exp: ${formattedDate(user.premiumExpiredAt)})`
+         : "⭐ Premium"
       : "Regular";
 
    const userInfo = `👤 *Informasi Profil:*\n
-*${escapeMarkdown(user.name)}* ${user.isPremium ? "⭐" : ""}
+*${escapeMarkdown(user.name)}* ${isPremium ? "⭐" : ""}
 ├ Role: ${user.role}
 ├ Username: ${user.userName ? `@${escapeMarkdown(user.userName)}` : "-"}
 ├ WhatsApp: ${user.whatsappNumber ? '+' + `\`${user.whatsappNumber}\`` : '-'}

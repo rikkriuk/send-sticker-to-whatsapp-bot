@@ -6,6 +6,7 @@ import { StickerData } from "../types/sticker.type";
 import { addStickerMetadata } from "./stickerExif";
 import { removePlusInNumber } from "./phoneValidate";
 import { DEFAULT_STICKER_PACK_NAME, PREMIUM_MAX_WHATSAPP_NUMBERS } from "../constants/businessConfig";
+import { checkAndResetPremium, getUser } from "../services/userService";
 
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 jam
 const lastSenderCache = new Map<string, { telegramId: number; ts: number }>();
@@ -20,12 +21,17 @@ setInterval(() => {
 
 export const sendStickerToWhatsApp = async (stickerData: StickerData, ctx: Context) => {
    const { filePath, mimeType, user } = stickerData;
-   const { telegramId, name, userName, whatsappNumber } = user;
-   const isPremium = user.isPremium && (!user.premiumExpiredAt || user.premiumExpiredAt.getTime() > Date.now());
-   const numbers = user.whatsappNumbers?.length
-      ? user.whatsappNumbers
+   const latestUser = await getUser(user.telegramId);
+   if (!latestUser) {
+      throw new Error(`Telegram user ${user.telegramId} was not found before sticker delivery`);
+   }
+
+   const { telegramId, name, userName, whatsappNumber } = latestUser;
+   const hasPremiumAccess = await checkAndResetPremium(latestUser);
+   const numbers = latestUser.whatsappNumbers?.length
+      ? latestUser.whatsappNumbers
       : whatsappNumber ? [whatsappNumber] : [];
-   const recipientNumbers = (isPremium ? numbers : numbers.slice(0, 1))
+   const recipientNumbers = (hasPremiumAccess ? numbers : numbers.slice(0, 1))
       .slice(0, PREMIUM_MAX_WHATSAPP_NUMBERS);
    if (recipientNumbers.length === 0) {
       throw new Error(`No WhatsApp recipient configured for Telegram user ${telegramId}`);
@@ -33,10 +39,14 @@ export const sendStickerToWhatsApp = async (stickerData: StickerData, ctx: Conte
 
    try {
       const mediaBuffer = await fs.promises.readFile(filePath);
+      const packName = hasPremiumAccess && latestUser.stickerPackName
+         ? latestUser.stickerPackName
+         : DEFAULT_STICKER_PACK_NAME;
+      console.log(`Generating sticker metadata for user ${telegramId} with pack "${packName}".`);
 
       const stickerBuffer = await addStickerMetadata(
          mediaBuffer,
-         isPremium && user.stickerPackName ? user.stickerPackName : DEFAULT_STICKER_PACK_NAME,
+         packName,
          `Created by @SendStickerBot (${userName ? "@" + userName : name})`
       );
 
