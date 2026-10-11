@@ -4,6 +4,7 @@ import messages from "../constants/messages";
 import {
    ADMIN_COMMANDS,
    isSuperAdmin,
+   PREMIUM_COMMANDS,
    ROLES,
    SUPER_ADMIN_COMMANDS,
    USER_COMMANDS,
@@ -19,10 +20,18 @@ export const adminOnly: MiddlewareFn<Context> = async (ctx, next) => {
    return next();
 };
 
-export const setCommandsForUser = async (telegramId: number, role: string) => {
+export const setCommandsForUser = async (
+   telegramId: number,
+   role: string,
+   isPremium: boolean = false
+) => {
    const commands = isSuperAdmin(telegramId)
       ? SUPER_ADMIN_COMMANDS
-      : role === ROLES.ADMIN ? ADMIN_COMMANDS : USER_COMMANDS;
+      : role === ROLES.ADMIN
+         ? (isPremium ? ADMIN_COMMANDS : ADMIN_COMMANDS.filter(({ command }) =>
+            command !== "numbers" && command !== "stickername"
+         ))
+         : isPremium ? PREMIUM_COMMANDS : USER_COMMANDS;
    await bot.telegram.setMyCommands(commands, {
       scope: { type: "chat", chat_id: telegramId },
    });

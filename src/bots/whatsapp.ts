@@ -15,6 +15,16 @@ import { DEFAULT_STICKER_PACK_NAME, QRIS_IMAGE_CAPTION } from "../constants/busi
 
 let sock: ReturnType<typeof makeWASocket>;
 
+const normalizeWhatsAppNumber = (value?: string) => {
+  const number = (value || "").replace(/\D/g, "");
+  if (number.startsWith("0")) return `62${number.slice(1)}`;
+  if (number.startsWith("8")) return `62${number}`;
+  return number;
+};
+
+const getPhoneNumberFromJid = (jid?: string) =>
+  jid?.split("@")[0].split(":")[0];
+
 const connectToWhatsApp = async () => {
   const { state, saveCreds } = await useMultiFileAuthState("auth_info_baileys");
   const { version } = await fetchLatestBaileysVersion();
@@ -75,16 +85,20 @@ const connectToWhatsApp = async () => {
             (message.conversation as string) ||
             (message.extendedTextMessage?.text as string) ||
             "";
-          const configuredAdminNumber = (process.env.ADMIN_WHATSAPP || "")
-            .replace(/\D/g, "")
-            .replace(/^0/, "62");
-          const ownNumber = (sock.user?.id || "").split(":")[0].split("@")[0];
+          const configuredAdminNumber = normalizeWhatsAppNumber(process.env.ADMIN_WHATSAPP);
+          const ownNumber = normalizeWhatsAppNumber(
+            getPhoneNumberFromJid(sock.user?.phoneNumber) ||
+              getPhoneNumberFromJid(sock.user?.id)
+          );
 
-          if (
-            text.trim().toLowerCase() === "qris" &&
-            configuredAdminNumber &&
-            configuredAdminNumber === ownNumber
-          ) {
+          if (text.trim().toLowerCase() === "qris") {
+            if (!configuredAdminNumber || !ownNumber || configuredAdminNumber !== ownNumber) {
+              console.warn(
+                "Perintah QRIS diabaikan: nomor ADMIN_WHATSAPP tidak cocok dengan nomor WhatsApp yang terhubung."
+              );
+              continue;
+            }
+
             const qrisImage = await getBusinessQris();
             if (!qrisImage) {
               console.warn("QRIS belum didaftarkan melalui Telegram superadmin.");
@@ -96,6 +110,7 @@ const connectToWhatsApp = async () => {
                 image: qrisImage,
                 caption: QRIS_IMAGE_CAPTION,
               });
+              console.log(`Gambar QRIS bisnis terkirim ke ${resolvedJid}.`);
             }
           }
           continue;

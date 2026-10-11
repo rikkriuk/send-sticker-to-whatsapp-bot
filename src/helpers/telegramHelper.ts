@@ -40,7 +40,12 @@ import fs from "fs";
 import { formattedDate } from "./formattedDate";
 import whatsappEmitter from "../events/eventEmitter";
 import { setCommandsForUser } from "../middleware/adminMiddleware";
-import { ADMIN_TELEGRAM_ID, ADMIN_TELEGRAM_USERNAME, isSuperAdmin, ROLES } from "../constants/roles";
+import {
+   ADMIN_TELEGRAM_ID,
+   ADMIN_TELEGRAM_USERNAME,
+   isSuperAdmin,
+   ROLES,
+} from "../constants/roles";
 import { getTimeUntilReset } from "./time";
 import { askAI } from "../services/aiService";
 import {
@@ -91,9 +96,18 @@ export const handleStart = async (ctx: Context) => {
             { parse_mode: "Markdown" }
          );
       } catch (_) {}
+
+      if (referralRewardGranted) {
+         const referrer = await getUser(referredBy);
+         if (referrer) {
+            const referrerIsPremium = await checkAndResetPremium(referrer);
+            await setCommandsForUser(referredBy, referrer.role, referrerIsPremium);
+         }
+      }
    }
 
-   await setCommandsForUser(ctx.chat.id, user.role);
+   const isPremium = await checkAndResetPremium(user);
+   await setCommandsForUser(ctx.chat.id, user.role, isPremium);
 
    if (isNewUser) {
       try {
@@ -131,8 +145,12 @@ export const handleWhatsappNumbers = async (ctx: Context) => {
    if (!ctx.message || !isTextMessage(ctx.message) || !ctx.chat) return;
 
    const user = await getUser(ctx.chat.id);
-   if (!user || !(await checkAndResetPremium(user))) {
-      await ctx.reply("Fitur ini khusus pengguna Premium. Nomor utama tetap bisa diatur dengan mengirim nomor WhatsApp di chat.", { parse_mode: "Markdown" });
+   const hasFeatureAccess = user
+      ? isSuperAdmin(user.telegramId) || await checkAndResetPremium(user)
+      : false;
+   if (!user || !hasFeatureAccess) {
+      if (user) await setCommandsForUser(user.telegramId, user.role, false);
+      await ctx.reply("Fitur ini hanya tersedia untuk Premium.");
       return;
    }
 
@@ -176,8 +194,12 @@ export const handleStickerName = async (ctx: Context) => {
    if (!ctx.message || !isTextMessage(ctx.message) || !ctx.chat) return;
 
    const user = await getUser(ctx.chat.id);
-   if (!user || !(await checkAndResetPremium(user))) {
-      await ctx.reply("Nama pack stiker khusus pengguna Premium.");
+   const hasFeatureAccess = user
+      ? isSuperAdmin(user.telegramId) || await checkAndResetPremium(user)
+      : false;
+   if (!user || !hasFeatureAccess) {
+      if (user) await setCommandsForUser(user.telegramId, user.role, false);
+      await ctx.reply("Fitur ini hanya tersedia untuk Premium.");
       return;
    }
 
@@ -592,8 +614,10 @@ export const handleProfile = async (ctx: Context) => {
       return;
    }
    
+   const isPremium = await checkAndResetPremium(user);
+   await setCommandsForUser(user.telegramId, user.role, isPremium);
    await resetStickerLimitIfNeeded(user);
-   const premiumStatus = user.isPremium && user.premiumExpiredAt 
+   const premiumStatus = isPremium && user.premiumExpiredAt
       ? `⭐ Premium (exp: ${formattedDate(user.premiumExpiredAt)})`
       : "Regular";
 
@@ -926,10 +950,26 @@ const actionHandlers: Record<string, (ctx: Context, telegramId: number, value: s
    setpremium: async (ctx, telegramId, value) => {
       if (value === "remove") {
          await removePremium(telegramId);
+         const user = await getUser(telegramId);
+         if (user) {
+            try {
+               await setCommandsForUser(telegramId, user.role, false);
+            } catch (error) {
+               console.error(`Gagal memperbarui command Telegram untuk user ${telegramId}:`, error);
+            }
+         }
          await ctx.answerCbQuery("❌ Premium berhasil dihapus");
          await notify(ctx, telegramId, `❌ *Status Premium kamu telah dihapus.*\nHubungi admin jika ada pertanyaan.`);
       } else {
          await setPremium(telegramId, parseInt(value));
+         const user = await getUser(telegramId);
+         if (user) {
+            try {
+               await setCommandsForUser(telegramId, user.role, true);
+            } catch (error) {
+               console.error(`Gagal memperbarui command Telegram untuk user ${telegramId}:`, error);
+            }
+         }
          await ctx.answerCbQuery(`⭐ Premium ${value} hari berhasil diset`);
          await notify(ctx, telegramId, `⭐ *Selamat! Akun kamu sekarang Premium selama ${value} hari.*\nNikmati limit sticker tanpa batas!`);
       }

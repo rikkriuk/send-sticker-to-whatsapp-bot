@@ -28,21 +28,25 @@ export const USER_COMMANDS = [
       description: "⭐ Kasih ulasan bot"
    },
    {
-      command: "numbers",
-      description: "📱 Atur nomor WhatsApp (premium)"
-   },
-   {
-      command: "stickername",
-      description: "🏷️ Atur nama pack stiker (premium)"
-   },
-   {
       command: "list_review",
       description: "📜 Lihat ulasan (berhalaman)"
    },
 ];
 
-export const ADMIN_COMMANDS = [
+export const PREMIUM_COMMANDS = [
    ...USER_COMMANDS,
+   {
+      command: "numbers",
+      description: "📱 Atur nomor WhatsApp"
+   },
+   {
+      command: "stickername",
+      description: "🏷️ Atur nama pack stiker"
+   },
+];
+
+export const ADMIN_COMMANDS = [
+   ...PREMIUM_COMMANDS,
    { 
       command: "broadcast",
       description: "📢 Kirim pesan ke semua pengguna" 
@@ -74,7 +78,10 @@ export const ADMIN_COMMANDS = [
 ];
 
 export const SUPER_ADMIN_COMMANDS = [
-   ...ADMIN_COMMANDS,
+   ...ADMIN_COMMANDS.filter(({ command }) =>
+      command !== "numbers" && command !== "stickername"
+   ),
+   ...PREMIUM_COMMANDS.slice(USER_COMMANDS.length),
    {
       command: "setqris",
       description: "🧾 Simpan gambar QRIS bisnis (superadmin)"
