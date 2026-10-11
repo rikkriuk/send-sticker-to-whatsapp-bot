@@ -105,7 +105,7 @@ const connectToWhatsApp = async () => {
             } else {
               await sock.sendMessage(resolvedJid, {
                 image: qrisImage,
-                caption: "QRIS pembayaran",
+                // caption: "QRIS pembayaran",
               });
               console.log(`Gambar QRIS bisnis terkirim ke ${resolvedJid}.`);
             }

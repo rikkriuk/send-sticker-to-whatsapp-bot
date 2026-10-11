@@ -1,7 +1,7 @@
 import { ADMIN_NAME, ADMIN_TELEGRAM_USERNAME } from "./roles";
 import {
   PREMIUM_MAX_WHATSAPP_NUMBERS,
-  REFERRAL_PREMIUM_MONTHS,
+  REFERRAL_PREMIUM_DAYS,
   REFERRALS_PER_PREMIUM,
   REFERRAL_STICKER_LIMIT_BONUS,
   REVIEW_STICKER_LIMIT_BONUS,
@@ -54,7 +54,7 @@ const messages = {
     "1. Klik /start untuk memulai.\n" +
     "2. Setelah itu, masukkan nomor WhatsApp yang valid, contoh formatnya seperti ini: 081234567890\n" +
     "3. Setelah nomor terverifikasi, kirimkan stiker untuk melanjutkan proses.\n\n_" +
-    `_Pengguna Premium dapat mengatur hingga ${PREMIUM_MAX_WHATSAPP_NUMBERS} nomor penerima lewat /numbers dan nama pack stiker lewat /stickername. Setiap ${REFERRALS_PER_PREMIUM} referral memberi Premium gratis ${REFERRAL_PREMIUM_MONTHS} bulan._\n\n_` +
+    `_Pengguna Premium dapat mengatur hingga ${PREMIUM_MAX_WHATSAPP_NUMBERS} nomor penerima lewat /numbers dan nama pack stiker lewat /stickername. Setiap ${REFERRALS_PER_PREMIUM} referral memberi Premium gratis ${REFERRAL_PREMIUM_DAYS} hari._\n\n_` +
     "_Catatan: Setiap pengguna memiliki batas untuk mengirimkan stiker per-hari, kamu bisa melihat informasinya di /profile.\n\n_" +
     `_Jika ada masalah atau pertanyaan, kamu bisa ketik /help atau chat @${ADMIN_TELEGRAM_USERNAME} untuk bantuan lebih lanjut._`,
   notes:

@@ -8,7 +8,7 @@ export const REFERRAL_STICKER_LIMIT_BONUS = positiveIntegerFromEnv(
    "REFERRAL_STICKER_LIMIT_BONUS",
    10
 );
-export const REFERRAL_PREMIUM_MONTHS = positiveIntegerFromEnv("REFERRAL_PREMIUM_MONTHS", 1);
+export const REFERRAL_PREMIUM_DAYS = positiveIntegerFromEnv("REFERRAL_PREMIUM_DAYS", 7);
 export const DEFAULT_DAILY_STICKER_LIMIT = positiveIntegerFromEnv(
    "DEFAULT_DAILY_STICKER_LIMIT",
    10

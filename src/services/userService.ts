@@ -4,7 +4,7 @@ import { UserChat } from "../types/userChat";
 import { IUser } from "../types/userModel.type";
 import {
    REFERRALS_PER_PREMIUM,
-   REFERRAL_PREMIUM_MONTHS,
+   REFERRAL_PREMIUM_DAYS,
    REFERRAL_STICKER_LIMIT_BONUS,
    DEFAULT_DAILY_STICKER_LIMIT,
    REVIEW_STICKER_LIMIT_BONUS,
@@ -72,8 +72,8 @@ export const saveOrUpateUser = async (chat: UserChat, referredBy?: number) => {
                                        new Date(),
                                     ],
                                  },
-                                 unit: "month",
-                                 amount: REFERRAL_PREMIUM_MONTHS,
+                                 unit: "day",
+                                 amount: REFERRAL_PREMIUM_DAYS,
                               },
                            },
                            { $ifNull: ["$premiumExpiredAt", null] },

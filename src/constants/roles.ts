@@ -28,6 +28,10 @@ export const USER_COMMANDS = [
       description: "⭐ Kasih ulasan bot"
    },
    {
+      command: "premium",
+      description: "⭐ Status & manfaat Premium"
+   },
+   {
       command: "list_review",
       description: "📜 Lihat ulasan"
    },
@@ -59,8 +63,8 @@ export const ADMIN_COMMANDS = [
       command: "list",    
       description: "📋 Daftar pengguna" 
    },
-   { 
-      command: "premium", 
+   {
+      command: "setpremium",
       description: "⭐ Set premium pengguna" 
    },
    { 

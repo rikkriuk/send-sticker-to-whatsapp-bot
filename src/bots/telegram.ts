@@ -10,6 +10,7 @@ import {
    handleGuide,
    handleLimitCommand,
    handlePremiumCommand,
+   handleSetPremiumCommand,
    handleBlockCommand,
    handleUserAction,
    handleExecuteAction,
@@ -73,7 +74,8 @@ bot.command("ai", adminOnly, (ctx) => handleAISettings(ctx));
 
 bot.command("broadcast", adminOnly, (ctx) => handleBroadcast(ctx));
 bot.command("limit", adminOnly, (ctx) => handleLimitCommand(ctx));
-bot.command("premium", adminOnly, (ctx) => handlePremiumCommand(ctx));
+bot.command("premium", (ctx) => handlePremiumCommand(ctx));
+bot.command("setpremium", adminOnly, (ctx) => handleSetPremiumCommand(ctx));
 bot.command("block", adminOnly, (ctx) => handleBlockCommand(ctx));
 bot.command("list",  adminOnly, (ctx) => handleListUser(ctx));
 bot.command("delete", adminOnly, (ctx) => handleDeleteCommand(ctx));

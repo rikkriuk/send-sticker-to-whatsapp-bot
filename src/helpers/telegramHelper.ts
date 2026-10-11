@@ -50,7 +50,7 @@ import { getTimeUntilReset } from "./time";
 import { askAI } from "../services/aiService";
 import {
    PREMIUM_MAX_WHATSAPP_NUMBERS,
-   REFERRAL_PREMIUM_MONTHS,
+   REFERRAL_PREMIUM_DAYS,
    REFERRALS_PER_PREMIUM,
    REFERRAL_STICKER_LIMIT_BONUS,
    REVIEW_STICKER_LIMIT_BONUS,
@@ -91,7 +91,18 @@ export const handleStart = async (ctx: Context) => {
       try {
          await ctx.telegram.sendMessage(
             referredBy,
-            `🎉 *Teman kamu berhasil join!*\n\n👤 ${escapeMarkdown(ctx.chat.first_name ?? '')} menggunakan link invite kamu.\n✅ Limit sticker kamu bertambah *+${REFERRAL_STICKER_LIMIT_BONUS}*!${referralRewardGranted ? `\n⭐ Kamu mendapat Premium gratis ${REFERRAL_PREMIUM_MONTHS} bulan karena mencapai ${REFERRALS_PER_PREMIUM} referral!` : ""}`,
+            [
+               "🎉 *Teman kamu berhasil join!*",
+               "",
+               `👤 ${escapeMarkdown(ctx.chat.first_name ?? "")} menggunakan link invite kamu.`,
+               `✅ Limit sticker kamu bertambah *+${REFERRAL_STICKER_LIMIT_BONUS}*!`,
+               ...(referralRewardGranted
+                  ? [
+                     `⭐ Kamu mendapat Premium gratis ${REFERRAL_PREMIUM_DAYS} hari karena mencapai ${REFERRALS_PER_PREMIUM} referral!`,
+                     "Lihat status dan manfaat Premium lewat /premium.",
+                  ]
+                  : []),
+            ].join("\n"),
             { parse_mode: "Markdown" }
          );
       } catch (_) {}
@@ -777,6 +788,49 @@ export const handleLimitCommand = async (ctx: Context) => {
 };
 
 export const handlePremiumCommand = async (ctx: Context) => {
+   const user = await getUser(ctx.chat?.id);
+   if (!user) {
+      await ctx.reply("Klik /start untuk mendaftar terlebih dahulu.", { parse_mode: "Markdown" });
+      return;
+   }
+
+   const isPremium = await checkAndResetPremium(user);
+   const premiumStatus = isPremium
+      ? user.premiumExpiredAt
+         ? `⭐ *Premium aktif* sampai ${formattedDate(user.premiumExpiredAt)}`
+         : "⭐ *Premium aktif*"
+      : "Kamu saat ini menggunakan paket *Regular* (belum Premium).";
+   const benefits = [
+      "• Kirim stiker tanpa batas harian",
+      "• Kirim stiker banyak sekaligus tanpa menunggu selesai satu satu",
+      `• Kirim stiker ke hingga ${PREMIUM_MAX_WHATSAPP_NUMBERS} nomor WhatsApp sekaligus`,
+      "• Atur nama pembuat (author) stiker sendiri",
+   ];
+
+   await ctx.reply(
+      [
+         "⭐ *Status & Paket Premium*",
+         "",
+         premiumStatus,
+         "",
+         "*Manfaat Premium:*",
+         ...benefits,
+         "",
+         "Tertarik upgrade? Tekan tombol di bawah untuk menghubungi admin.",
+      ].join("\n"),
+      {
+         parse_mode: "Markdown",
+         reply_markup: {
+            inline_keyboard: [[{
+               text: "⭐ Hubungi Admin untuk Premium",
+               url: `https://t.me/${ADMIN_TELEGRAM_USERNAME}`,
+            }]],
+         },
+      }
+   );
+};
+
+export const handleSetPremiumCommand = async (ctx: Context) => {
    await handleSelectUser(ctx, "premium");
 };
 
@@ -1030,7 +1084,7 @@ export const handleInvite = async (ctx: Context) => {
 
    await ctx.reply(`🔗 *Link Undangan Kamu:*`, { parse_mode: "Markdown" });
    await ctx.reply(inviteLink);
-   await ctx.reply(`📢 Salin dan bagikan link di atas ke teman kamu!\nSetiap teman yang join, kamu dapat *+${REFERRAL_STICKER_LIMIT_BONUS} limit sticker*. Setiap ${REFERRALS_PER_PREMIUM} referral, kamu juga mendapat *Premium gratis ${REFERRAL_PREMIUM_MONTHS} bulan*.`, { parse_mode: "Markdown" });
+   await ctx.reply(`📢 Salin dan bagikan link di atas ke teman kamu!\nSetiap teman yang join, kamu dapat *+${REFERRAL_STICKER_LIMIT_BONUS} limit sticker*. Setiap ${REFERRALS_PER_PREMIUM} referral, kamu juga mendapat *Premium gratis ${REFERRAL_PREMIUM_DAYS} hari*.`, { parse_mode: "Markdown" });
 };
 
 export const handleLeaderboard = async (ctx: Context) => {
@@ -1053,7 +1107,7 @@ export const handleLeaderboard = async (ctx: Context) => {
       "🏆 *Top Referral*\n",
       rows.join("\n"),
       "",
-      `_Undang teman lewat /invite: +${REFERRAL_STICKER_LIMIT_BONUS} limit per teman dan Premium gratis ${REFERRAL_PREMIUM_MONTHS} bulan setiap ${REFERRALS_PER_PREMIUM} referral!_`,
+      `_Undang teman lewat /invite: +${REFERRAL_STICKER_LIMIT_BONUS} limit per teman dan Premium gratis ${REFERRAL_PREMIUM_DAYS} hari setiap ${REFERRALS_PER_PREMIUM} referral!_`,
    ].join("\n");
 
    ctx.reply(message, { parse_mode: "Markdown" });
