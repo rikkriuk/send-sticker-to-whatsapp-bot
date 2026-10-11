@@ -1,7 +1,13 @@
 import { Context, MiddlewareFn } from "telegraf";
 import { getUser } from "../services/userService";
 import messages from "../constants/messages";
-import { ADMIN_COMMANDS, ROLES, USER_COMMANDS } from "../constants/roles";
+import {
+   ADMIN_COMMANDS,
+   isSuperAdmin,
+   ROLES,
+   SUPER_ADMIN_COMMANDS,
+   USER_COMMANDS,
+} from "../constants/roles";
 import { bot } from "../bots/telegram";
 
 export const adminOnly: MiddlewareFn<Context> = async (ctx, next) => {
@@ -14,8 +20,9 @@ export const adminOnly: MiddlewareFn<Context> = async (ctx, next) => {
 };
 
 export const setCommandsForUser = async (telegramId: number, role: string) => {
-   const commands = 
-      role === ROLES.ADMIN ? ADMIN_COMMANDS : USER_COMMANDS;
+   const commands = isSuperAdmin(telegramId)
+      ? SUPER_ADMIN_COMMANDS
+      : role === ROLES.ADMIN ? ADMIN_COMMANDS : USER_COMMANDS;
    await bot.telegram.setMyCommands(commands, {
       scope: { type: "chat", chat_id: telegramId },
    });

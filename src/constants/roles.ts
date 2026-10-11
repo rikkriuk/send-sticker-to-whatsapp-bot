@@ -37,7 +37,7 @@ export const USER_COMMANDS = [
    },
    {
       command: "list_review",
-      description: "📜 Lihat semua ulasan"
+      description: "📜 Lihat ulasan (berhalaman)"
    },
 ];
 
@@ -70,6 +70,18 @@ export const ADMIN_COMMANDS = [
    {
       command: "ai",
       description: "🤖 Pengaturan AI asisten",
+   },
+];
+
+export const SUPER_ADMIN_COMMANDS = [
+   ...ADMIN_COMMANDS,
+   {
+      command: "setqris",
+      description: "🧾 Simpan gambar QRIS bisnis (superadmin)"
+   },
+   {
+      command: "deleteqris",
+      description: "🗑️ Hapus gambar QRIS bisnis (superadmin)"
    },
 ];
 

@@ -27,6 +27,7 @@ import {
    submitUserReview,
    updateUserReview,
    getRecentReviews,
+   getReviewsPage,
    setWhatsappNumbers,
    setStickerPackName,
 } from "../services/userService";
@@ -269,11 +270,28 @@ export const handleReviewCommand = async (ctx: Context) => {
    await ctx.reply(messages.reviewPrompt, { parse_mode: "Markdown" });
 };
 
-export const handleReviewsList = async (ctx: Context) => {
-   const reviews = await getRecentReviews(10);
+const REVIEWS_PER_PAGE = 5;
+
+export const handleReviewsList = async (
+   ctx: Context,
+   requestedPage: number = 1,
+   editMessage: boolean = false
+) => {
+   let page = Math.max(1, Math.floor(Number.isFinite(requestedPage) ? requestedPage : 1));
+   let { reviews, total } = await getReviewsPage(page, REVIEWS_PER_PAGE);
+   const totalPages = Math.max(1, Math.ceil(total / REVIEWS_PER_PAGE));
+
+   if (page > totalPages) {
+      page = totalPages;
+      ({ reviews, total } = await getReviewsPage(page, REVIEWS_PER_PAGE));
+   }
 
    if (!reviews.length) {
-      ctx.reply(messages.reviewsEmpty, { parse_mode: "Markdown" });
+      if (editMessage) {
+         await ctx.editMessageText(messages.reviewsEmpty, { parse_mode: "Markdown" });
+      } else {
+         await ctx.reply(messages.reviewsEmpty, { parse_mode: "Markdown" });
+      }
       return;
    }
 
@@ -282,26 +300,43 @@ export const handleReviewsList = async (ctx: Context) => {
    const lines = reviews.map((review, index) => {
       const name = review.userName ? `@${escapeMarkdown(review.userName)}` : escapeMarkdown(review.name || "User");
       const text = escapeMarkdown(review.reviewText || "-");
-      return `${index + 1}. *${name}*\n“${text}”`;
+      return `${(page - 1) * REVIEWS_PER_PAGE + index + 1}. *${name}*\n“${text}”`;
    });
 
-   const baseReply = `*Ulasan Terbaru*\n\n${lines.join("\n\n")}`;
+   const baseReply = `*Ulasan Terbaru* (${page}/${totalPages})\n\n${lines.join("\n\n")}`;
 
-   if (!isAdmin) {
-      await ctx.reply(baseReply, { parse_mode: "Markdown" });
-      return;
+   const keyboard: { text: string; callback_data: string }[][] = [];
+   if (isAdmin) {
+      keyboard.push(...reviews.map((review) => [{
+            text: `🗑️ Hapus review @${review.userName || review.name || review.telegramId}`,
+            callback_data: `delete_review_${review.telegramId}_${page}`,
+         }]));
    }
 
-   const keyboard = {
-      reply_markup: {
-         inline_keyboard: reviews.map((review) => [{
-            text: `🗑️ Hapus review @${review.userName || review.name || review.telegramId}`,
-            callback_data: `delete_review_${review.telegramId}`,
-         }]),
-      },
+   if (page > 1 || page < totalPages) {
+      keyboard.push([
+         ...(page > 1 ? [{ text: "⬅️ Sebelumnya", callback_data: `reviews_page_${page - 1}` }] : []),
+         ...(page < totalPages ? [{ text: "Berikutnya ➡️", callback_data: `reviews_page_${page + 1}` }] : []),
+      ]);
+   }
+
+   const options = {
+      parse_mode: "Markdown" as const,
+      ...(keyboard.length > 0 ? { reply_markup: { inline_keyboard: keyboard } } : {}),
    };
 
-   await ctx.reply(baseReply, { parse_mode: "Markdown", ...keyboard });
+   if (editMessage) {
+      await ctx.editMessageText(baseReply, options);
+   } else {
+      await ctx.reply(baseReply, options);
+   }
+};
+
+export const handleReviewsPage = async (ctx: Context) => {
+   const data = (ctx.callbackQuery as any)?.data as string | undefined;
+   const page = Number(data?.match(/^reviews_page_(\d+)$/)?.[1]);
+   await ctx.answerCbQuery();
+   await handleReviewsList(ctx, page, true);
 };
 
 export const handleTextMessage = async (ctx: Context) => {

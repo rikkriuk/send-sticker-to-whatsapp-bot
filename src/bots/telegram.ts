@@ -21,16 +21,18 @@ import {
    handleAIToggle,
    handleReviewCommand,
    handleReviewsList,
+   handleReviewsPage,
    handleWhatsappNumbers,
    handleStickerName,
    handleQrisCommand,
    handleQrisPhoto,
    handleDeleteQrisCommand,
 } from "../helpers/telegramHelper";
-import { adminOnly } from "../middleware/adminMiddleware";
+import { adminOnly, setCommandsForUser } from "../middleware/adminMiddleware";
 import { getUser } from "../services/userService";
 import { deleteUserReview } from "../services/userService";
 import { escapeMarkdown } from "../helpers/telegramHelper";
+import { ADMIN_TELEGRAM_ID, ROLES, USER_COMMANDS } from "../constants/roles";
 
 export const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN as string);
 
@@ -49,8 +51,12 @@ bot.action("review_prompt", async (ctx) => {
    await ctx.answerCbQuery();
    await handleReviewCommand(ctx);
 });
-bot.action(/^delete_review_(\d+)$/, adminOnly, async (ctx) => {
-   const telegramId = Number((ctx.callbackQuery as any).data?.replace("delete_review_", ""));
+bot.action(/^delete_review_(\d+)(?:_(\d+))?$/, adminOnly, async (ctx) => {
+   const [, rawTelegramId, rawPage] = ((ctx.callbackQuery as any).data as string).match(
+      /^delete_review_(\d+)(?:_(\d+))?$/
+   )!;
+   const telegramId = Number(rawTelegramId);
+   const page = Number(rawPage || 1);
    const user = await getUser(telegramId);
    if (!user) {
       await ctx.answerCbQuery("User tidak ditemukan");
@@ -59,8 +65,9 @@ bot.action(/^delete_review_(\d+)$/, adminOnly, async (ctx) => {
 
    await deleteUserReview(telegramId);
    await ctx.answerCbQuery("✅ Review berhasil dihapus");
-   await ctx.editMessageText(`✅ Review dari *${escapeMarkdown(user.name || "User")}* berhasil dihapus.`, { parse_mode: "Markdown" });
+   await handleReviewsList(ctx, page, true);
 });
+bot.action(/^reviews_page_\d+$/, (ctx) => handleReviewsPage(ctx));
 bot.command("leaderboard", (ctx) => handleLeaderboard(ctx));
 bot.command("ai", adminOnly, (ctx) => handleAISettings(ctx));
 
@@ -86,6 +93,19 @@ bot.catch((err, ctx) => {
    console.error(`[Bot Error] Update ${ctx.updateType}:`, err);
 });
 
-bot.launch();
+bot.launch()
+   .then(async () => {
+      try {
+         await bot.telegram.setMyCommands(USER_COMMANDS);
+         if (Number.isSafeInteger(ADMIN_TELEGRAM_ID)) {
+            await setCommandsForUser(ADMIN_TELEGRAM_ID, ROLES.ADMIN);
+         }
+      } catch (error) {
+         console.error("Gagal memperbarui daftar command Telegram:", error);
+      }
 
-console.log("Bot Telegram berjalan...");
+      console.log("Bot Telegram berjalan...");
+   })
+   .catch((error) => {
+      console.error("Gagal menjalankan bot Telegram:", error);
+   });

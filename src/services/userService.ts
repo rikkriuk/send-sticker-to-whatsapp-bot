@@ -340,11 +340,25 @@ export const updateUserReview = async (telegramId: number, text: string) => {
    return { success: true, user };
 };
 
+export const getReviewsPage = async (page: number, limit: number) => {
+   const filter = { hasReviewed: true, reviewText: { $exists: true, $ne: "" } };
+   const [reviews, total] = await Promise.all([
+      User.find(filter)
+         .sort({ reviewUpdatedAt: -1, reviewSubmittedAt: -1, _id: -1 })
+         .skip((page - 1) * limit)
+         .limit(limit)
+         .select("telegramId name userName reviewText reviewUpdatedAt reviewSubmittedAt"),
+      User.countDocuments(filter),
+   ]);
+   return { reviews, total };
+};
+
 export const getRecentReviews = async (limit: number = 10) => {
-   return await User.find({ hasReviewed: true, reviewText: { $exists: true, $ne: "" } })
-      .sort({ reviewUpdatedAt: -1, reviewSubmittedAt: -1 })
-      .limit(limit)
-      .select("telegramId name userName reviewText reviewUpdatedAt reviewSubmittedAt");
+   return await getReviewsPage(1, limit).then(({ reviews }) => reviews);
+};
+
+export const getTotalReviews = async () => {
+   return await User.countDocuments({ hasReviewed: true, reviewText: { $exists: true, $ne: "" } });
 };
 
 export const deleteUserReview = async (telegramId: number) => {
