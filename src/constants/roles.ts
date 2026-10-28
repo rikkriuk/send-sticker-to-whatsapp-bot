@@ -11,6 +11,10 @@ export const USER_COMMANDS = [
       command: "start",
       description: "🚀 Mulai bot" 
    },
+   {
+      command: "language",
+      description: "🌐 Ganti bahasa",
+   },
    { 
       command: "profile",
       description: "👤 Lihat profil" 

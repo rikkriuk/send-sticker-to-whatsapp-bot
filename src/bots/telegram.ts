@@ -28,16 +28,24 @@ import {
    handleQrisCommand,
    handleQrisPhoto,
    handleDeleteQrisCommand,
+   handleStartLanguage,
+   handleLanguageCommand,
+   handleLanguageSelection,
+   handleDeleteReview,
+   loadUserLanguage,
+   handleTelegramBotReady,
 } from "../helpers/telegramHelper";
-import { adminOnly, setCommandsForUser } from "../middleware/adminMiddleware";
-import { getUser } from "../services/userService";
-import { deleteUserReview } from "../services/userService";
-import { escapeMarkdown } from "../helpers/telegramHelper";
-import { ADMIN_TELEGRAM_ID, ROLES, USER_COMMANDS } from "../constants/roles";
+import { adminOnly } from "../middleware/adminMiddleware";
+import { escapeMarkdown } from "../helpers/markdownHelper";
 
 export const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN as string);
 
+bot.use(loadUserLanguage);
+
 bot.start((ctx) => handleStart(ctx));
+bot.command("language", (ctx) => handleLanguageCommand(ctx));
+bot.action(/^start_language_(id|en)_(\d+)$/, (ctx) => handleStartLanguage(ctx));
+bot.action(/^language_(id|en)$/, (ctx) => handleLanguageSelection(ctx));
 bot.command("profile", (ctx) => handleProfile(ctx));
 bot.command("numbers", (ctx) => handleWhatsappNumbers(ctx));
 bot.command("stickername", (ctx) => handleStickerName(ctx));
@@ -52,22 +60,7 @@ bot.action("review_prompt", async (ctx) => {
    await ctx.answerCbQuery();
    await handleReviewCommand(ctx);
 });
-bot.action(/^delete_review_(\d+)(?:_(\d+))?$/, adminOnly, async (ctx) => {
-   const [, rawTelegramId, rawPage] = ((ctx.callbackQuery as any).data as string).match(
-      /^delete_review_(\d+)(?:_(\d+))?$/
-   )!;
-   const telegramId = Number(rawTelegramId);
-   const page = Number(rawPage || 1);
-   const user = await getUser(telegramId);
-   if (!user) {
-      await ctx.answerCbQuery("User tidak ditemukan");
-      return;
-   }
-
-   await deleteUserReview(telegramId);
-   await ctx.answerCbQuery("✅ Review berhasil dihapus");
-   await handleReviewsList(ctx, page, true);
-});
+bot.action(/^delete_review_(\d+)(?:_(\d+))?$/, adminOnly, handleDeleteReview);
 bot.action(/^reviews_page_\d+$/, (ctx) => handleReviewsPage(ctx));
 bot.command("leaderboard", (ctx) => handleLeaderboard(ctx));
 bot.command("ai", adminOnly, (ctx) => handleAISettings(ctx));
@@ -96,18 +89,7 @@ bot.catch((err, ctx) => {
 });
 
 bot.launch()
-   .then(async () => {
-      try {
-         await bot.telegram.setMyCommands(USER_COMMANDS);
-         if (Number.isSafeInteger(ADMIN_TELEGRAM_ID)) {
-            await setCommandsForUser(ADMIN_TELEGRAM_ID, ROLES.ADMIN);
-         }
-      } catch (error) {
-         console.error("Gagal memperbarui daftar command Telegram:", error);
-      }
-
-      console.log("Bot Telegram berjalan...");
-   })
+   .then(() => handleTelegramBotReady(bot))
    .catch((error) => {
       console.error("Gagal menjalankan bot Telegram:", error);
    });

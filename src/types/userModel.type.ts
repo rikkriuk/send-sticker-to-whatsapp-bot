@@ -1,10 +1,12 @@
 import mongoose from "mongoose";
 
 export type UserRole = "admin" | "user";
+export type UserLanguage = "id" | "en";
 
 export interface IUser extends Document {
   _id?: mongoose.Types.ObjectId,
   telegramId: number;
+  language?: UserLanguage;
   name: string;
   userName?: string;
   whatsappNumber?: string;

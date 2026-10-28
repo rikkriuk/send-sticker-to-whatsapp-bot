@@ -2,7 +2,7 @@ import axios from "axios";
 import fs from "fs";
 import { sendStickerToWhatsApp } from "../helpers/whatsappHelper";
 import { deleteFile } from "../helpers/fileHelper";
-import messages from "../constants/messages";
+import { normalizeLanguage, translate } from "../lang";
 import { MediaData } from "../types/media.type";
 import { execSync } from "child_process";
 import path from "path";
@@ -53,7 +53,7 @@ export const downloadFile = async (mediaData: MediaData, ctx: any) => {
             await downloadWebpWebmFile(mediaData, ctx, { fileType: "webp", mimeType: "image/webp" });
          }
       } catch (error) {
-         await ctx.reply(messages.downloadFailed, { parse_mode: "Markdown" });
+         await ctx.reply(translate(normalizeLanguage(ctx.state.language), "downloadFailed"), { parse_mode: "Markdown" });
          console.log("Gagal mengunduh file", error);
          throw error;
       }

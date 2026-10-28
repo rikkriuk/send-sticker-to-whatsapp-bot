@@ -10,12 +10,17 @@ import {
    REVIEW_STICKER_LIMIT_BONUS,
 } from "../constants/businessConfig";
 import { isSuperAdmin } from "../constants/roles";
+import { UserLanguage } from "../types/userModel.type";
 
 export const getAllUsers = async () => {
    return await User.find({}, { telegramId: 1 });
 };
 
-export const saveOrUpateUser = async (chat: UserChat, referredBy?: number) => {
+export const saveOrUpateUser = async (
+   chat: UserChat,
+   referredBy?: number,
+   language?: UserLanguage,
+) => {
    try {
       const { id, first_name, username } = chat;
       let user = await User.findOne({ telegramId: id });
@@ -34,6 +39,8 @@ export const saveOrUpateUser = async (chat: UserChat, referredBy?: number) => {
          user.name = first_name;
          user.userName = username || "";
       }
+
+      if (language) user.language = language;
 
       await user.save();
 
@@ -152,6 +159,14 @@ export const getUser = async (telegramId: number | undefined) => {
       throw error;
    }
 }
+
+export const setUserLanguage = async (telegramId: number, language: "id" | "en") => {
+   return await User.findOneAndUpdate(
+      { telegramId },
+      { $set: { language } },
+      { new: true }
+   );
+};
 
 export const resetStickerLimitIfNeeded = async (user: any) => {
    const now = Date.now();

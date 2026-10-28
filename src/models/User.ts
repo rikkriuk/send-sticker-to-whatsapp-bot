@@ -9,6 +9,11 @@ const UserSchema: Schema = new Schema(
       required: true, 
       unique: true 
     },
+    language: {
+      type: String,
+      enum: ["id", "en"],
+      required: false,
+    },
     name: { 
       type: String, 
       required: true 

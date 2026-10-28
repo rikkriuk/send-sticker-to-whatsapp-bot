@@ -1,7 +1,7 @@
 import { Context } from "telegraf";
 import { client } from "../bots/whatsapp";
 import fs from "fs";
-import messages from "../constants/messages";
+import { normalizeLanguage, translate } from "../lang";
 import { StickerData } from "../types/sticker.type";
 import { addStickerMetadata } from "./stickerExif";
 import { removePlusInNumber } from "./phoneValidate";
@@ -27,6 +27,7 @@ export const sendStickerToWhatsApp = async (stickerData: StickerData, ctx: Conte
    }
 
    const { telegramId, name, userName, whatsappNumber } = latestUser;
+   const language = normalizeLanguage(latestUser.language);
    const hasPremiumAccess = await checkAndResetPremium(latestUser);
    const numbers = latestUser.whatsappNumbers?.length
       ? latestUser.whatsappNumbers
@@ -56,12 +57,12 @@ export const sendStickerToWhatsApp = async (stickerData: StickerData, ctx: Conte
          const now = Date.now();
          if (!cached || cached.telegramId !== telegramId || now - cached.ts > CACHE_TTL) {
             const lines = [
-               "🎁 *Stiker dari Telegram*",
+               translate(language, "stickerDeliveryTitle"),
                "",
-               "👤 *Pengirim:*",
-               `├ Nama: ${name}`,
-               `├ Username: ${userName ? "@" + userName : "-"}`,
-               `└ Id Telegram: ${telegramId}`,
+               translate(language, "sender"),
+               `├ ${translate(language, "nameLabel")}: ${name}`,
+               `├ ${translate(language, "usernameLabel")}: ${userName ? "@" + userName : "-"}`,
+               `└ ${translate(language, "telegramIdLabel")}: ${telegramId}`,
             ];
 
             await client.sendMessage(userNumber, {
@@ -71,7 +72,7 @@ export const sendStickerToWhatsApp = async (stickerData: StickerData, ctx: Conte
          }
          await client.sendMessage(userNumber, { sticker: stickerBuffer });
       }
-      ctx.reply(messages.success, { parse_mode: "Markdown" });
+      ctx.reply(translate(normalizeLanguage(ctx.state.language), "success"), { parse_mode: "Markdown" });
    } catch (error) {
       console.log("Gagal mengirim stiker ke whatsapp");
       throw error;
