@@ -1,15 +1,26 @@
+import { parsePhoneNumberFromString } from "libphonenumber-js";
+
+const normalizePhoneInput = (input: string): string | null => {
+   const trimmed = input.trim();
+   if (!/^\+?[\d\s().-]+$/.test(trimmed)) return null;
+
+   const compact = trimmed.replace(/[\s().-]/g, "");
+   if (compact.startsWith("00")) return `+${compact.slice(2)}`;
+   if (compact.startsWith("+")) return compact;
+   if (compact.startsWith("0")) return compact;
+
+   return `+${compact}`;
+};
+
 export const isValidWhatsAppNumber = (number: string): string | null => {
-   const regex = /^(\+62|62|08)[1-9][0-9]{7,11}$/;
-   
-   if (regex.test(number)) {
-      const formattedNumber = number
-         .replace(/\D/g, "")
-         .replace(/^0/, "62");
+   const normalized = normalizePhoneInput(number);
+   if (!normalized) return null;
 
-      return formattedNumber;
-   }
+   const phoneNumber = normalized.startsWith("0")
+      ? parsePhoneNumberFromString(normalized, "ID")
+      : parsePhoneNumberFromString(normalized);
 
-   return null;
+   return phoneNumber?.isValid() ? phoneNumber.number.slice(1) : null;
 };
 
 export const removePlusInNumber = (number: string): string => {
@@ -17,6 +28,9 @@ export const removePlusInNumber = (number: string): string => {
 }
 
 export const looksLikePhoneNumber = (text: string): boolean => {
-   const cleaned = text.replace(/\s+/g, "");
-   return /^\+?[0-9]{8,15}$/.test(cleaned);
+   const normalized = normalizePhoneInput(text);
+   if (!normalized) return false;
+
+   const digits = normalized.replace(/\D/g, "");
+   return digits.length >= 8 && digits.length <= 15;
 };

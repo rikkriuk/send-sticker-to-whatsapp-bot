@@ -19,10 +19,10 @@ const id = {
   totalUsersReviews: " /list\\_review",
   sendSticker: "Silakan kirim stiker kamu!",
   premiumOnly: "Fitur ini hanya tersedia untuk pengguna Premium.",
-  premiumNumbersCurrent: "Nomor WhatsApp penerima Premium saat ini:\n{{numbers}}\n\nAtur maksimal {{max}} nomor dengan /numbers <nomor utama> [nomor kedua]. Contoh: /numbers 081234567890 081234567891",
+  premiumNumbersCurrent: "Nomor WhatsApp penerima Premium saat ini:\n{{numbers}}\n\nAtur maksimal {{max}} nomor dengan /numbers <nomor utama>[, nomor kedua]. Nomor lokal Indonesia bisa diawali 08; nomor luar negeri gunakan kode negara, misalnya +819012345678 atau 819012345678. Contoh: /numbers 081234567890, +819012345678",
   noNumbers: "Belum ada nomor",
   premiumNumbersFormat: "Maksimal {{max}} nomor. Format: /numbers <nomor utama> [nomor kedua]",
-  premiumNumbersInvalid: "Nomor tidak valid atau ada nomor duplikat. Contoh: /numbers 081234567890 081234567891",
+  premiumNumbersInvalid: "Nomor tidak valid atau ada nomor duplikat. Gunakan format lokal Indonesia (08...) atau kode negara internasional (+81... atau 81...). Contoh: /numbers 081234567890, +819012345678",
   premiumNumbersSaved: "Nomor WhatsApp berhasil disimpan:\n{{numbers}}",
   stickerNameCurrent: "Nama pembuat stiker saat ini: {{name}}\nUbah dengan /stickername <nama>. Gunakan /stickername reset untuk mengembalikan nama pembuat default.",
   defaultBot: "Default bot",
@@ -57,13 +57,13 @@ const id = {
   reviewAlreadyExists: "_Kamu sudah pernah mengirim ulasan. Kamu masih bisa memperbarui ulasan yang ada, tapi reward tidak akan ditambah lagi._",
   inValidTextFormat: "_Harap kirimkan pesan dalam format teks._",
   inValidCommand: "_Perintah tidak dikenali. Coba /help._",
-  invalidNumber: "_Nomor tidak valid, silakan masukkan nomor yang benar!\n\nContoh: 085722710523_",
+  invalidNumber: "_Nomor tidak valid. Kirim nomor lokal Indonesia (contoh: 085722710523) atau nomor internasional dengan kode negara (contoh: +6285722710523 atau 6285722710523)._",
   validNumber: "_Nomor tersimpan 📝\nSilakan kirim stiker!_",
   stickerLimit: "_Pengiriman stiker hari ini mencapai batas! ⏰\n\nCoba lagi dalam: *{{resetTime}}* atau dapatkan limit di bawah ini 👇_",
   reviewButton: "⭐ Beri Ulasan (+{{bonus}} limit)",
   inviteButton: "👥 Undang Teman (+{{bonus}} limit)",
   premiumButton: "⭐ Upgrade ke Premium (tanpa batas) - {{price}}",
-  whatsappInfo: "_Bot belum menemukan nomor WhatsApp kamu. Silakan kirim nomor WhatsApp!\n\nNomor yang kamu masukkan akan menjadi tujuan penerimaan stiker.\n\nContoh: 085722710523_",
+  whatsappInfo: "_Bot belum menemukan nomor WhatsApp kamu. Silakan kirim nomor WhatsApp!\n\nNomor yang kamu masukkan akan menjadi tujuan penerimaan stiker. Gunakan format lokal Indonesia (08...) atau kode negara untuk nomor luar negeri (+62... atau 62...).\n\nContoh: 085722710523 atau +6285722710523_",
   pending: "_Harap tunggu! Stiker kamu sedang diproses._",
   process: "_Mengirim stiker..._",
   failed: "_Stiker gagal dikirim._",
@@ -83,7 +83,7 @@ const id = {
   invalidUpdateLimitFormat: "_Masukkan format yang benar.\nContoh: /limit ID-NUMBER_",
   whatsappNotReady: "_WhatsApp belum siap. Mohon tunggu beberapa detik._",
   help: "_Halo! Ada yang bisa saya bantu?_",
-  guide: "_Panduan Penggunaan Bot:\n\n1. Klik /start untuk memulai dan pilih bahasa.\n2. Masukkan nomor WhatsApp yang valid, contoh: 081234567890.\n3. Setelah nomor tersimpan, kirim stiker untuk meneruskannya ke WhatsApp.\n4. Ganti bahasa kapan saja lewat /language.\n\n" +
+  guide: "_Panduan Penggunaan Bot:\n\n1. Klik /start untuk memulai dan pilih bahasa.\n2. Masukkan nomor WhatsApp yang valid. Gunakan format 08... untuk nomor Indonesia atau kode negara (misalnya +81... atau 81...) untuk nomor luar negeri.\n3. Setelah nomor tersimpan, kirim stiker untuk meneruskannya ke WhatsApp.\n4. Ganti bahasa kapan saja lewat /language.\n\n" +
     `_Pengguna Premium dapat mengatur hingga ${PREMIUM_MAX_WHATSAPP_NUMBERS} nomor penerima lewat /numbers dan nama pembuat stiker lewat /stickername. Setiap ${REFERRALS_PER_PREMIUM} referral memberi Premium gratis selama ${REFERRAL_PREMIUM_DAYS} hari._\n\n` +
     "_Setiap pengguna memiliki batas pengiriman stiker harian. Lihat limit kamu lewat /profile.\n\n_" +
     `_Jika ada masalah atau pertanyaan, ketik /help atau hubungi @${ADMIN_TELEGRAM_USERNAME}._`,

@@ -324,7 +324,13 @@ export const handleWhatsappNumbers = async (ctx: Context) => {
       return;
    }
 
-   const inputNumbers = commandText.split(/[,\s]+/).filter(Boolean);
+   const whitespaceSeparatedNumbers = commandText.split(/\s+/).filter(Boolean);
+   const inputNumbers = commandText.includes(",")
+      ? commandText.split(",").map((number) => number.trim()).filter(Boolean)
+      : whitespaceSeparatedNumbers.length > 1 &&
+          whitespaceSeparatedNumbers.every((number) => isValidWhatsAppNumber(number))
+        ? whitespaceSeparatedNumbers
+        : [commandText];
    if (inputNumbers.length === 0 || inputNumbers.length > PREMIUM_MAX_WHATSAPP_NUMBERS) {
       await ctx.reply(t(ctx, "premiumNumbersFormat", { max: PREMIUM_MAX_WHATSAPP_NUMBERS }));
       return;

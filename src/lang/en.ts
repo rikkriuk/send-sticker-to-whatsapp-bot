@@ -15,10 +15,10 @@ const en = {
   totalUsersReviews: " /list\\_review",
   sendSticker: "Send your sticker to get started!",
   premiumOnly: "This feature is only available to Premium users.",
-  premiumNumbersCurrent: "Current Premium WhatsApp recipient numbers:\n{{numbers}}\n\nSet up to {{max}} numbers with /numbers <primary number> [secondary number]. Example: /numbers 081234567890 081234567891",
+  premiumNumbersCurrent: "Current Premium WhatsApp recipient numbers:\n{{numbers}}\n\nSet up to {{max}} numbers with /numbers <primary number>[, secondary number]. Use 08... for Indonesian local numbers; use the country code for international numbers, such as +6285722710523 or 6285722710523. Example: /numbers 081234567890, +6285722710523",
   noNumbers: "No numbers saved",
   premiumNumbersFormat: "You can add up to {{max}} numbers. Format: /numbers <primary number> [secondary number]",
-  premiumNumbersInvalid: "A number is invalid or duplicated. Example: /numbers 081234567890 081234567891",
+  premiumNumbersInvalid: "A number is invalid or duplicated. Use an Indonesian local number (08...) or an international country code (+62... or 62...). Example: /numbers 081234567890, +6285722710523",
   premiumNumbersSaved: "WhatsApp numbers saved:\n{{numbers}}",
   stickerNameCurrent: "Current sticker creator name: {{name}}\nChange it with /stickername <name>. Use /stickername reset to restore the default creator name.",
   defaultBot: "Bot default",
@@ -53,13 +53,13 @@ const en = {
   reviewAlreadyExists: "_You have already submitted a review. You can update it, but no additional reward will be granted._",
   inValidTextFormat: "_Please send your message as text._",
   inValidCommand: "_Unknown command. Try /help._",
-  invalidNumber: "_Invalid number. Please enter a valid WhatsApp number.\n\nExample: 085722710523_",
+  invalidNumber: "_Invalid number. Send an Indonesian local number (example: 085722710523) or an international number with its country code (example: +819012345678 or 819012345678)._",
   validNumber: "_Number saved 📝\nSend a sticker to get started!_",
   stickerLimit: "_You have reached today's sticker limit! ⏰\n\nTry again in: *{{resetTime}}* or get more limit below 👇_",
   reviewButton: "⭐ Leave a Review (+{{bonus}} limit)",
   inviteButton: "👥 Invite Friends (+{{bonus}} limit)",
   premiumButton: "⭐ Upgrade to Premium (unlimited) - {{price}}",
-  whatsappInfo: "_We couldn't find your WhatsApp number. Please send your WhatsApp number!\n\nStickers will be sent to this number.\n\nExample: 085722710523_",
+  whatsappInfo: "_We couldn't find your WhatsApp number. Please send your WhatsApp number!\n\nStickers will be sent to this number. Use 08... for Indonesian local numbers or the country code for international numbers (+81... or 81...).\n\nExample: 085722710523 or +819012345678_",
   pending: "_Please wait! Your sticker is being processed._",
   process: "_Sending sticker..._",
   failed: "_Failed to send the sticker._",
@@ -79,7 +79,7 @@ const en = {
   invalidUpdateLimitFormat: "_Please use the correct format.\nExample: /limit ID-NUMBER_",
   whatsappNotReady: "_WhatsApp is not ready yet. Please wait a few seconds._",
   help: "_Hello! How can I help you?_",
-  guide: "_Bot Usage Guide:\n\n1. Tap /start to begin and select your preferred language.\n2. Send a valid WhatsApp number, for example: 081234567890.\n3. Once your number is saved, send a sticker to forward it to WhatsApp.\n4. Change your language at any time with /language.\n\n" +
+  guide: "_Bot Usage Guide:\n\n1. Tap /start to begin and select your preferred language.\n2. Send a valid WhatsApp number. Use 08... for an Indonesian local number or a country code (such as +81... or 81...) for an international number.\n3. Once your number is saved, send a sticker to forward it to WhatsApp.\n4. Change your language at any time with /language.\n\n" +
     `_Premium users can manage up to ${PREMIUM_MAX_WHATSAPP_NUMBERS} recipient numbers with /numbers and set a sticker creator name with /stickername. Every ${REFERRALS_PER_PREMIUM} referrals earns ${REFERRAL_PREMIUM_DAYS} days of free Premium._\n\n` +
     "_Each user has a daily sticker limit. Check your limit with /profile.\n\n_" +
     `_For help, type /help or contact @${ADMIN_TELEGRAM_USERNAME}._`,

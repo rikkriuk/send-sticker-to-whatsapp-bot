@@ -72,6 +72,10 @@ npm run start:build
 
 Scan QR code yang muncul di terminal dengan WhatsApp untuk menghubungkan bot.
 
+## Bahasa Bot Telegram
+
+Saat pertama kali menggunakan bot Telegram, pengguna memilih Bahasa Indonesia atau English melalui tombol `/start`. Pilihan disimpan di profil pengguna dan digunakan kembali pada interaksi berikutnya. Gunakan `/language` untuk mengganti bahasa. Kamus terjemahan berada di `src/lang/id.ts` dan `src/lang/en.ts`.
+
 ---
 
 ## ⚠️ Notes
