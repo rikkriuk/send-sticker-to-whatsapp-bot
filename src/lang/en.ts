@@ -53,7 +53,7 @@ const en = {
   reviewAlreadyExists: "_You have already submitted a review. You can update it, but no additional reward will be granted._",
   inValidTextFormat: "_Please send your message as text._",
   inValidCommand: "_Unknown command. Try /help._",
-  invalidNumber: "_This number doesn’t look right.\nSend a WhatsApp number like this:\nIndonesian number: 085722710523\nNumber from another country: +819012345678\nFor another country, put + and the country code at the beginning._",
+  invalidNumber: "_This number doesn’t look right. Send a WhatsApp number like this:\n\nIndonesian number: 085722710523\nNumber from another country: +819012345678\n\nFor another country, put + and the country code at the beginning._",
   validNumber: "_Number saved 📝\nSend a sticker to get started!_",
   stickerLimit: "_You have reached today's sticker limit! ⏰\n\nTry again in: *{{resetTime}}* or get more limit below 👇_",
   reviewButton: "⭐ Leave a Review (+{{bonus}} limit)",

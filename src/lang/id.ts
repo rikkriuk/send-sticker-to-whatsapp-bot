@@ -57,7 +57,7 @@ const id = {
   reviewAlreadyExists: "_Kamu sudah pernah mengirim ulasan. Kamu masih bisa memperbarui ulasan yang ada, tapi reward tidak akan ditambah lagi._",
   inValidTextFormat: "_Harap kirimkan pesan dalam format teks._",
   inValidCommand: "_Perintah tidak dikenali. Coba /help._",
-  invalidNumber: "_Nomor belum benar.\nKirim nomor WhatsApp seperti contoh:\nNomor Indonesia: 085722710523\nNomor luar negeri: +819012345678\nUntuk nomor luar negeri, tulis tanda + dan kode negara di depan._",
+  invalidNumber: "_Nomor belum benar. Kirim nomor WhatsApp seperti contoh:\n\nNomor Indonesia: 085722710523\nNomor luar negeri: +819012345678\n\nUntuk nomor luar negeri, tulis tanda + dan kode negara di depan._",
   validNumber: "_Nomor tersimpan 📝\nSilakan kirim stiker!_",
   stickerLimit: "_Pengiriman stiker hari ini mencapai batas! ⏰\n\nCoba lagi dalam: *{{resetTime}}* atau dapatkan limit di bawah ini 👇_",
   reviewButton: "⭐ Beri Ulasan (+{{bonus}} limit)",
